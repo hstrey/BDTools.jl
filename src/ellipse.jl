@@ -79,6 +79,23 @@ function canonical(params::Vector)
 end
 
 """
+    gaussellipse(xy, p)
+
+Estimate intensity difference for a Gaussian ellipse at each point of 2D matrix `xy`
+given the ellipse parameters in `p`.
+"""
+function gaussellipse(xy,p)
+    x0,y0,rx,ry,θ,a,A,bg,σ = p #unpack parameters
+    x = xy[:,1]
+    y = xy[:,2]
+    dx = x .- x0
+    dy = y .- y0
+    ct = cos(θ)
+    st = sin(θ)
+    return bg .- A * exp.( -(1 .-sqrt.(( dx .* ct .+ dy .* st ).^2/rx^2+(dx .* st .- dy .* ct).^2/ry^2)).^2/σ^2)
+end
+
+"""
     gaussellipse3d(xyz, p)
 
 Estimate intensity difference for a Gaussian ellipse at each point of 3D tensor `xyz`
@@ -120,6 +137,61 @@ function prepare_initial_point(p::Vector)
     θ = θ < 0 ? π + θ : θ
     # form initial solution
     [x0, y0, a, b, θ, α, (A < 0 ? 0.0 : A), bg, abs(σ)]
+end
+
+"""
+    fitellipse(imgs::AbstractMatrix, segs::SegmentedImage, edge::Matrix{Int};
+                 verbose=true, keepinitialonerror=true, secondfit=true) -> Vector
+
+Perform fitting of an ellipse given an image tensor `imgs`, `mask` for fitting coordinates,
+and `edge` elements of an ellipse shape. Returns a vector with fitted ellipse parameters.
+
+If `secondfit` is `true`, then an additional fitting is performed after the result of
+first fitting is corrected.
+"""
+function fitellipse(img::AbstractMatrix{T}, segs::SegmentedImage, edge::Matrix{Bool};
+                     verbose=true, keepinitialonerror=true, secondfit=true) where {T}
+    r,c = size(img)
+    # find ecllipse in edge
+    coords = hcat(([i.I...] for i in findall(edge))...)
+    E1 = fitellipsedirect(coords) |> canonical
+    verbose && @debug "Initial fit" E1
+
+    # get all points within the outer boundry
+    coords2 = hcat(([ci.I...] for ci in findall(labels_map(segs) .!= 1))...)
+    z = [img[x,y] for (x,y) in eachcol(coords2)]
+
+    # refine ellipse paramaters using outer segment points
+    # and edge ellipse estimate
+    p0 = prepare_initial_point([E1[1:5]..., 0, extrema(z)..., 0.01])
+    fit = curve_fit(gaussellipse, coords2', z, p0, autodiff=:forwarddiff)
+    E = fit.param
+    verbose && @debug "LSQ fit 1" p0 E
+
+    # refine again
+    lb = [c/2-3.0, r/2-3.0, 0.0, 0.0, -π, -π/2,   0,   0, 0.001]
+    ub = [c/2+3.0, r/2+3.0, Inf, Inf,  π,  π/2, Inf, Inf, 1.000]
+    p0 = prepare_initial_point(E)
+    E = try
+        if secondfit
+            fit = curve_fit(gaussellipse, coords2', z, p0, lower=lb, upper=ub, autodiff=:forwarddiff)
+            fit.param
+        else
+            p0
+        end
+    catch ex
+        p0 = prepare_initial_point([E1[1:5]..., 0, minimum(z), maximum(z)/2, 0.01])
+        if keepinitialonerror
+            p0
+        else
+            @debug "Error. Trying with constraints." p0
+            fit = curve_fit(gaussellipse, coords2', z, p0, lower=lb, upper=ub)
+            fit.param
+        end
+    end
+    verbose && secondfit && @debug "LSQ fit 2" p0 E
+
+    return E
 end
 
 """
@@ -178,6 +250,17 @@ function fitellipse3d(imgs::AbstractArray, mask::BitArray, edge::Matrix{Int};
 
     return E
 end
+
+"""
+    getellipse(imgs::AbstractArray; verbose=true, secondfit=true) -> Vector
+
+Returns a vector with fitted ellipse parameters from a 2D image matrix.
+"""
+function getellipse(img::AbstractArray; verbose=true)
+    segs = segment3(img)
+    fitellipse(img, segs, edge(segs); verbose)
+end
+
 
 """
     getellipse3d(imgs::AbstractArray; verbose=true, secondfit=true) -> Vector
