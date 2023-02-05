@@ -390,7 +390,7 @@ version = "0.4.6"
 
 [[deps.BDTools]]
 deps = ["ImageSegmentation", "Images", "Interpolations", "LinearAlgebra", "LsqFit", "Statistics"]
-path = "/home/art/Desktop/BrainDancer/BDTools"
+path = "../BDTools"
 uuid = "6f2079fd-6c9e-4521-946b-68ee3d3b6add"
 version = "0.0.1"
 
