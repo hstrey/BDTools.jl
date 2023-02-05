@@ -1,5 +1,6 @@
 using LinearAlgebra
 using Interpolations
+using Statistics
 
 # 3D Rotations Matrices
 
@@ -64,4 +65,24 @@ function phantominterp(imgs::AbstractArray; itrptype = BSpline(Quadratic()))
     ys = 1:c
     zs = 1:h
     return extrapolate(scale(interpolate(imgs, itrptype), xs, ys, zs), Line())
+end
+
+"""
+	fitline(xy::AbstractMatrix) -> NamedTuple
+
+Return line paramaters (mean, direction, slope) after fiting coordinates stored in column-major order input `xy`.
+"""
+function fitline(xy::AbstractMatrix)
+	μ = mean(xy, dims=2)
+	F = svd(xy .- μ)
+	dir = vec(F.U[1,:])
+	slope = dir[2]/dir[1]
+	fn(x::Real) = vec(μ) + dir*x
+	 # mean, direction, slope
+	(
+		μ   = vec(μ), v=dir, slope=slope,
+	 	fn  = (t::Real) -> vec(μ) + dir*t,
+		fnx = (y::Real) -> μ[1]	+ (y-μ[2])/slope,
+		fny = (x::Real) -> μ[2]	+ (x-μ[1])*slope
+	)
 end
