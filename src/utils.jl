@@ -19,7 +19,6 @@ function rotate(x, y, z, a, b, c, u, v, w, θ)
 	(c*(u^2+v^2)-w*(a*u+b*v-u*x-v*y-w*z))*(1-cos(θ))+z*cos(θ)+(-b*u+a*v-v*x+u*y)*sin(θ)
 end
 
-
 """
 	rotatevoxel(o::Vector, p::Vector) -> f(x,y,z,θ)
 
@@ -60,7 +59,7 @@ end
 Construct interpolation function from an image 3D tensor.
 """
 function phantominterp(imgs::AbstractArray; itrptype = BSpline(Quadratic()))
-    (r,c,h) = size(imgs),
+    (r,c,h) = size(imgs)
     xs = 1:r
     ys = 1:c
     zs = 1:h
