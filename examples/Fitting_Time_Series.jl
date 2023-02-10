@@ -33,9 +33,6 @@ begin
 	using BDTools
 end
 
-# ╔═╡ b8a2fbf0-389c-4c84-9fc0-7b67cebd6eaf
-using BDTools: Rx, Ry, Rz
-
 # ╔═╡ 92d88bd4-c8e5-4167-bc40-011b44d3d021
 # Setup visualization params
 gr(display_type=:inline)
@@ -175,23 +172,6 @@ end
 # ╔═╡ 4dab67c1-b204-42fb-a621-06db4fb4ae11
 plot(angles, ylab="α (rad)", legend=:none, title="Rotation angles")
 
-# ╔═╡ 1557be9b-2a83-45a1-9b81-ce72f27ba64c
-md"**Generate intensities from the static avarage by rotating to an angle of a rotation of a dynamic slice**"
-
-# ╔═╡ d59ccb58-f737-4b46-be43-ab6cc46679cc
-md"""
-Coordinates:
-- X: $(@bind x html"<input type=number min=1 max=83 value=42></input>")
-- Y: $(@bind y html"<input type=number min=1 max=84 value=42></input>")
-- Z: $(@bind z html"<input type=number min=1 max=13 value=1></input>")
-"""
-
-# ╔═╡ ea1bcfbb-a214-4acc-9242-08fd1d867d75
-begin
-	@info "Actual" intencity=staticimgs[x,y,z]
-	@info "Interpolated" intencity=phantom_itp(x,y,z)
-end
-
 # ╔═╡ 5901e7fc-9c1d-46f1-8c93-128106e974a5
 md"**Generate simulated image**"
 
@@ -224,19 +204,6 @@ end
 # ╔═╡ cb6bec51-f76c-4f18-a023-c31ebce3758e
 md"## Ellipsoidal Rotation"
 
-# ╔═╡ 28441b49-be01-4b92-923f-4df46084a486
-Rx(π/2)*Rz(π/2)*[1, 2, 3]
-
-# ╔═╡ dbcf2825-884a-4770-9bec-e6171a48ffe6
-# transformation matrix
-TM(α, θ, a, b) = let S = [a/b 0 0; 0 1 0; 0 0 1]
-	# rot to 0 -> scale to circ -> rot to α -> scale to ellps -> rot to θ
-	Rz(-θ)*S*Rz(α)*inv(S)*Rz(θ)
-end
-
-# ╔═╡ f3924f2b-9586-4222-967b-bf02f04ff715
-
-
 # ╔═╡ 655d3550-631b-49a0-af96-d83d9be96c5f
 md"""
 Generate image from an avarage volume slice `Z` by rotating it at an angle `α` ∈ [-π,π].
@@ -254,7 +221,7 @@ Y-axis: $(@bind h html"<input type=number min=1 max=81 value=42>")
 		(a, b) = staticEs[3:4,sliceId2]
 
 	f(γ) = begin
-		coords = map(α->TM(α, γ, a, b)*([h,v,sliceId2].-origin).+origin, 0.0:0.1:π)
+		coords = map(α->BDTools.ellipserot(α, γ, a, b)*([h,v,sliceId2].-origin).+origin, 0.0:0.1:π)
 		sim = map(c->phantom_itp(c...), coords)
 		abs(-(extrema(sim)...))
 	end
@@ -273,7 +240,7 @@ let α = deg2rad(alpha_grad),
 	(a, b) = staticEs[3:4,sliceId2]
 
 	# Coordinate transformation
-	coords = [TM(α, γ, a, b)*([i,j,sliceId2].-origin).+origin for i in 1:sz[1], j in 1:sz[2]]
+	coords = [BDTools.ellipserot(α, γ, a, b)*([i,j,sliceId2].-origin).+origin for i in 1:sz[1], j in 1:sz[2]]
 	# interpolate intensities
 	sim = map(c->phantom_itp(c...), coords)
 	# generate image
@@ -299,7 +266,7 @@ let αs = 0:0.1:π,
 	γ = deg2rad(gamma_grad)
 
 	# Coordinate transformation
-	coords = map(α->TM(α, γ, a, b)*([h,v,sliceId2].-origin).+origin, αs)
+	coords = map(α->BDTools.ellipserot(α, γ, a, b)*([h,v,sliceId2].-origin).+origin, αs)
 	# interpolate intensities
 	sim = map(c->phantom_itp(c...), coords)
 	# plot
@@ -390,7 +357,7 @@ version = "0.4.6"
 
 [[deps.BDTools]]
 deps = ["ImageSegmentation", "Images", "Interpolations", "LinearAlgebra", "LsqFit", "Statistics"]
-path = "../BDTools"
+path = "../../../home/art/Desktop/BrainDancer/BDTools"
 uuid = "6f2079fd-6c9e-4521-946b-68ee3d3b6add"
 version = "0.0.1"
 
@@ -2044,17 +2011,10 @@ version = "1.4.1+0"
 # ╟─0a597747-f5cd-40c5-a9a4-7005a34f6b94
 # ╠═ecc9c2ef-b24d-49c8-9363-63edf9cd2b0f
 # ╟─4dab67c1-b204-42fb-a621-06db4fb4ae11
-# ╟─1557be9b-2a83-45a1-9b81-ce72f27ba64c
-# ╟─d59ccb58-f737-4b46-be43-ab6cc46679cc
-# ╟─ea1bcfbb-a214-4acc-9242-08fd1d867d75
 # ╟─5901e7fc-9c1d-46f1-8c93-128106e974a5
 # ╟─bacd2be5-c44b-4c2e-9660-7d7890ac7a01
 # ╟─11841d64-1d44-4886-9b0e-7eadaa2b8da8
 # ╟─cb6bec51-f76c-4f18-a023-c31ebce3758e
-# ╠═b8a2fbf0-389c-4c84-9fc0-7b67cebd6eaf
-# ╠═28441b49-be01-4b92-923f-4df46084a486
-# ╠═dbcf2825-884a-4770-9bec-e6171a48ffe6
-# ╠═f3924f2b-9586-4222-967b-bf02f04ff715
 # ╟─655d3550-631b-49a0-af96-d83d9be96c5f
 # ╟─3558b4d0-ef5a-4fa5-81f3-9ab166195a4b
 # ╠═91775ed3-50db-4275-bf5b-3ed5b6fa70b2

@@ -9,6 +9,21 @@ Ry(β) = [cos(β) 0 sin(β); 0 1 0; -sin(β) 0 cos(β)]
 Rz(γ) = [cos(γ) -sin(γ) 0; sin(γ) cos(γ) 0; 0 0 1]
 
 """
+	ellipserot(α, θ, a, b)
+
+Ellipsoidal rotation matrix:
+- α: rotation angle
+- θ: ellipse initial rotation angle
+- a: ellipse long axis
+- b: ellipse short axis
+"""
+function ellipserot(α, θ, a, b)
+	S = [a/b 0 0; 0 1 0; 0 0 1]
+	# rot to 0 -> scale to circ -> rot to α -> scale to ellps -> rot to θ
+	Rz(-θ)*S*Rz(α)*inv(S)*Rz(θ)
+end
+
+"""
 	rotate(x, y, z, a, b, c, u, v, w, θ)
 
 Rotate point `(x,y,z)` around the line that passes through the point `(a,b,c)`
