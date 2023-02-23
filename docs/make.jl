@@ -40,9 +40,9 @@ makedocs(
     ]
 )
 
-# deploydocs(
-#     repo = "github.com/hstrey/BDTools.jl.git",
-#     push_preview = true,
-#     versions = ["v#.#", "dev" => "dev"],
-#     deploy_config = deployconfig,
-# )
+deploydocs(
+    repo = "github.com/hstrey/BDTools.jl.git",
+    push_preview = true,
+    versions = ["v#.#", "dev" => "dev"],
+    deploy_config = deployconfig,
+)
