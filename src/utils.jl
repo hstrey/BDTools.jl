@@ -1,6 +1,7 @@
 using LinearAlgebra
 using Interpolations
 using Statistics
+using DelimitedFiles
 
 # 3D Rotations Matrices
 
@@ -100,4 +101,22 @@ function fitline(xy::AbstractMatrix)
 		fnx = (y::Real) -> μ[1]	+ (y-μ[2])/slope,
 		fny = (x::Real) -> μ[2]	+ (x-μ[1])*slope
 	)
+end
+
+"""
+    getangles(file::String; initpos=20, col=11)
+
+Read phantom rotation data from a `file` and extract rotation angle in radians. Return vector of angles,
+and an index in it of a first valid rotation.
+"""
+function getangles(file::String; initpos=20, col=11)
+    quant = 2^13
+    # load rotation data
+    df, cols = readdlm(file, ',', Int, header=true)
+    @assert length(cols)>col && cols[col] == "CurPos" "Incorrect file format"
+    pos = @view df[:,col]
+    # determine dynamic phase
+    firstrotidx = findfirst(e->e>initpos, pos)
+    # adjust to [-π:π] range
+    [a > π ? a-2π : a  for a in (pos ./ quant).*(2π)], firstrotidx
 end
