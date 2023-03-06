@@ -11,16 +11,9 @@ using Literate
 # using Plots # to not capture precompilation output
 
 # generate examples
-EXAMPLE = joinpath(@__DIR__, "..", "examples", "example.jl")
+EXAMPLE = joinpath(@__DIR__, "..", "examples", "tutorial.jl")
 OUTPUT = joinpath(@__DIR__, "src/generated")
-
-# function preprocess(str)
-#     str = replace(str, "x = 123" => "y = 321"; count=1)
-#     return str
-# end
-# Literate.markdown(EXAMPLE, OUTPUT, preprocess = preprocess)
-# # Literate.notebook(EXAMPLE, OUTPUT, preprocess = preprocess)
-# # Literate.script(EXAMPLE, OUTPUT, preprocess = preprocess)
+Literate.markdown(EXAMPLE, OUTPUT)
 
 makedocs(
     format = Documenter.HTML(
@@ -32,11 +25,8 @@ makedocs(
     sitename = "BDTools.jl",
     pages = Any[
         "Home" => "index.md",
+        "Tutorial" => "generated/tutorial.md",
         "API Reference" => "reference.md",
-        # "Examples" => [
-        #     "overview.md",
-        #     "generated/example.md"
-        # ],
     ]
 )
 
