@@ -1,56 +1,45 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Tutorial · BDTools.jl</title><script data-outdated-warner src="../assets/warner.js"></script><link rel="canonical" href="https://hstrey.github.io/BDTools.jl/stable/tutorial/"/><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">BDTools.jl</a></span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li class="is-active"><a class="tocitem" href>Tutorial</a></li><li><a class="tocitem" href="../reference/">API Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Tutorial</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Tutorial</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/hstrey/BDTools.jl/blob/main/docs/src/tutorial.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Tutorial"><a class="docs-heading-anchor" href="#Tutorial">Tutorial</a><a id="Tutorial-1"></a><a class="docs-heading-anchor-permalink" href="#Tutorial" title="Permalink"></a></h1><p>Load libraries required for this tutorial.</p><pre><code class="language-julia hljs">using BDTools
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Tutorial · BDTools.jl</title><script data-outdated-warner src="../assets/warner.js"></script><link rel="canonical" href="https://hstrey.github.io/BDTools.jl/stable/tutorial/"/><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">BDTools.jl</a></span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li class="is-active"><a class="tocitem" href>Tutorial</a><ul class="internal"><li><a class="tocitem" href="#Loading-data"><span>Loading data</span></a></li><li><a class="tocitem" href="#Construct-static-phantom"><span>Construct static phantom</span></a></li><li><a class="tocitem" href="#Construct-ground-truth-dataset"><span>Construct ground truth dataset</span></a></li><li><a class="tocitem" href="#Generate-rotated-predictions"><span>Generate rotated predictions</span></a></li></ul></li><li><a class="tocitem" href="../reference/">API Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Tutorial</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Tutorial</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/hstrey/BDTools.jl/blob/main/docs/src/tutorial.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Tutorial"><a class="docs-heading-anchor" href="#Tutorial">Tutorial</a><a id="Tutorial-1"></a><a class="docs-heading-anchor-permalink" href="#Tutorial" title="Permalink"></a></h1><p>Load libraries required for this tutorial.</p><pre><code class="language-julia hljs">using BDTools
 using Plots
 using NIfTI
-using DelimitedFiles
-````
+using DelimitedFiles</code></pre><h2 id="Loading-data"><a class="docs-heading-anchor" href="#Loading-data">Loading data</a><a id="Loading-data-1"></a><a class="docs-heading-anchor-permalink" href="#Loading-data" title="Permalink"></a></h2><p>First, we load phantom data from a NIfTI formatted file.</p><pre><code class="language-julia hljs">const DATA_DIR = &quot;../PhantomData&quot;
+phantom_ts = niread(joinpath(DATA_DIR, &quot;BFC_time_series.nii&quot;));
+sz = size(phantom_ts)</code></pre><p>Next, we load rotation angles from rotation data,</p><pre><code class="language-julia hljs">angles, firstrotidx = BDTools.getangles(joinpath(DATA_DIR, &quot;epi&quot;,  &quot;log.csv&quot;))</code></pre><p>and slice motion information.</p><pre><code class="language-julia hljs">sliceinfo, _ = readdlm(joinpath(DATA_DIR, &quot;slices.csv&quot;), &#39;,&#39;, Int, header=true)</code></pre><h2 id="Construct-static-phantom"><a class="docs-heading-anchor" href="#Construct-static-phantom">Construct static phantom</a><a id="Construct-static-phantom-1"></a><a class="docs-heading-anchor-permalink" href="#Construct-static-phantom" title="Permalink"></a></h2><p>Use <code>staticphantom</code> function to construct a static phantom object by providing phantom data time series and slice motion info. Resulting object contains an ellipse fit for each slice of a static phantom.</p><pre><code class="language-julia hljs">sph = staticphantom(convert(Array, phantom_ts), sliceinfo);</code></pre><h3 id="Show-phantom-center-axis"><a class="docs-heading-anchor" href="#Show-phantom-center-axis">Show phantom center axis</a><a id="Show-phantom-center-axis-1"></a><a class="docs-heading-anchor-permalink" href="#Show-phantom-center-axis" title="Permalink"></a></h3><p>Using phantom fitted ellipse parameters, we construct a phantom center axis (z-axis), and fit ellipse centers on this axis.</p><pre><code class="language-julia hljs">let ecs = BDTools.centers(sph), rng=collect(-1.:0.15:1.)
+    # show original data
+    p = scatter(ecs[:,1], ecs[:,2], label=&quot;centers&quot;, legend=:topleft)
+    # show predicted phantom center axis
+    cc = map(t-&gt;BDTools.predictcenter(sph, t), rng)
+    plot!(p, map(first, cc), map(last, cc), label=&quot;axis&quot;)
+    # project slice centers to a fitted center axis
+    xy = BDTools.fittedcenters(sph)
+    scatter!(p, xy[:,1], xy[:,2], label=&quot;fitted&quot;)
+end</code></pre><h2 id="Construct-ground-truth-dataset"><a class="docs-heading-anchor" href="#Construct-ground-truth-dataset">Construct ground truth dataset</a><a id="Construct-ground-truth-dataset-1"></a><a class="docs-heading-anchor-permalink" href="#Construct-ground-truth-dataset" title="Permalink"></a></h2><p>We can construct a ground truth data at any rotation angle. Providing a rotation angle <code>α</code> and a slice coordinate <code>z</code>, we generate a rotated phantom.</p><pre><code class="language-julia hljs">let α = deg2rad(10), z = 3
+    # get ellipse parameters at slice z
+    origin, a, b = BDTools.getellipse(sph, z)
+    # get a ellipse&#39;s initial rotation angle
+    γ = BDTools.findinitialrotation(sph, z)
 
-## Loading data
+    # Coordinate transformation
+    coords = [BDTools.ellipserot(α, γ, a, b)*([i,j,z].-origin).+origin for i in 1:sz[1], j in 1:sz[2]]
+    # interpolate intensities
+    sim = map(c-&gt;sph.interpolation(c...), coords)
+    # generate image
+    gen = BDTools.Images.Colors.Gray.(sim |&gt; BDTools.genimg)
+    # show averaged image
+    ave = BDTools.Images.Colors.Gray.(sph.data[:,:,z] |&gt; BDTools.genimg)
+    pave = plot(ave, aspect_ratio=1.0, axis=nothing, framestyle=:none, title=&quot;Slice $z&quot;, size=(300,350))
+    # show generated image
+    pgen = plot(gen, aspect_ratio=1.0, axis=nothing, framestyle=:none, title=&quot;Rotated at $(rad2deg(α))°&quot;, legend=:none)
+    plot(pave, pgen)
+end</code></pre><h2 id="Generate-rotated-predictions"><a class="docs-heading-anchor" href="#Generate-rotated-predictions">Generate rotated predictions</a><a id="Generate-rotated-predictions-1"></a><a class="docs-heading-anchor-permalink" href="#Generate-rotated-predictions" title="Permalink"></a></h2><p>For a rotation information, we can generate a predictions of rotated phantoms.</p><pre><code class="language-julia hljs">res = BDTools.groundtruth(sph, phantom_ts, angles; startmotion=firstrotidx, threshold=.95);</code></pre><p>and plot prediction and original data</p><pre><code class="language-julia hljs">let x = 42, y = 52, z = 3 # get coordinates
+    data, sliceidx, maskcoords = res;
 
-First, we load phantom data from a NIfTI formatted file.
-</code></pre><p>julia const DATA<em>DIR = &quot;../PhantomData&quot; phantom</em>ts = niread(joinpath(DATA<em>DIR, &quot;BFC</em>time<em>series.nii&quot;)); sz = size(phantom</em>ts)</p><pre><code class="nohighlight hljs">
-Next, we load rotation angles from rotation data,
-</code></pre><p>julia angles, firstrotidx = BDTools.getangles(joinpath(DATA_DIR, &quot;epi&quot;,  &quot;log.csv&quot;))</p><pre><code class="nohighlight hljs">
-and slice motion information.
-</code></pre><p>julia sliceinfo, _ = readdlm(joinpath(DATA_DIR, &quot;slices.csv&quot;), &#39;,&#39;, Int, header=true)</p><pre><code class="nohighlight hljs">
-## Construct static phantom
+    # get a coordinate index
+    c = CartesianIndex(x,y)
+    cidx = findfirst(m-&gt;m == c, maskcoords)
+    cidx === nothing &amp;&amp; return
 
-Use `staticphantom` function to construct a static phantom object
-by providing phantom data time series and slice motion info.
-Resulting object contains an ellipse fit for each slice of a static phantom.
-</code></pre><p>julia sph = staticphantom(convert(Array, phantom_ts), sliceinfo);</p><pre><code class="nohighlight hljs">
-### Show phantom center axis
-
-Using phantom fitted ellipse parameters, we construct a phantom center axis (z-axis),
-and fit ellipse centers on this axis.
-</code></pre><p>julia let ecs = BDTools.centers(sph), rng=collect(-1.:0.15:1.)     # show original data     p = scatter(ecs[:,1], ecs[:,2], label=&quot;centers&quot;, legend=:topleft)     # show predicted phantom center axis     cc = map(t-&gt;BDTools.predictcenter(sph, t), rng)     plot!(p, map(first, cc), map(last, cc), label=&quot;axis&quot;)     # project slice centers to a fitted center axis     xy = BDTools.fittedcenters(sph)     scatter!(p, xy[:,1], xy[:,2], label=&quot;fitted&quot;) end</p><pre><code class="nohighlight hljs">
-## Construct ground truth dataset
-
-We can construct a ground truth data at any rotation angle.
-Providing a rotation angle `α` and a slice coordinate `z`, we generate
-a rotated phantom.
-</code></pre><p>julia let α = deg2rad(10), z = 3     # get ellipse parameters at slice z     origin, a, b = ellipseparams(sph, z)     # get a ellipse&#39;s initial rotation angle     γ = BDTools.findinitialrotation(sph, z)</p><pre><code class="nohighlight hljs"># Coordinate transformation
-coords = [BDTools.ellipserot(α, γ, a, b)*([i,j,z].-origin).+origin for i in 1:sz[1], j in 1:sz[2]]
-# interpolate intensities
-sim = map(c-&gt;sph.interpolation(c...), coords)
-# generate image
-gen = BDTools.Images.Colors.Gray.(sim |&gt; BDTools.genimg)
-# show averaged image
-ave = BDTools.Images.Colors.Gray.(sph.data[:,:,z] |&gt; BDTools.genimg)
-pave = plot(ave, aspect_ratio=1.0, axis=nothing, framestyle=:none, title=&quot;Slice $z&quot;, size=(300,350))
-# show generated image
-pgen = plot(gen, aspect_ratio=1.0, axis=nothing, framestyle=:none, title=&quot;Rotated at $(rad2deg(α))°&quot;, legend=:none)
-plot(pave, pgen)</code></pre><p>end</p><pre><code class="nohighlight hljs">
-## Generate rotated predictions
-
-For a rotation information, we can generate a predictions of rotated phantoms.
-</code></pre><p>julia res = BDTools.predict(sph, phantom_ts, angles; startmotion=firstrotidx, threshold=.95);</p><pre><code class="nohighlight hljs">
-and plot prediction and original data
-</code></pre><p>julia let x = 42, y = 52, z = 3 # get coordinates     data, sliceidx, maskcoords = res;</p><pre><code class="nohighlight hljs"># get a coordinate index
-c = CartesianIndex(x,y)
-cidx = findfirst(m-&gt;m == c, maskcoords)
-cidx === nothing &amp;&amp; return
-
-# plot data
-plot(data[:, cidx, z, 1], label=&quot;prediction&quot;, title=&quot;Intensity&quot;)
-plot!(data[:, cidx, z, 2], label=&quot;original&quot;)</code></pre><p>end ```</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../reference/">API Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Thursday 9 March 2023 20:56">Thursday 9 March 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+    # plot data
+    plot(data[:, cidx, z, 1], label=&quot;prediction&quot;, title=&quot;Intensity&quot;)
+    plot!(data[:, cidx, z, 2], label=&quot;original&quot;)
+end</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../reference/">API Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Thursday 9 March 2023 21:48">Thursday 9 March 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
