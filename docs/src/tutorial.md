@@ -7,7 +7,7 @@ using BDTools
 using Plots
 using NIfTI
 using DelimitedFiles
-````
+```
 
 ## Loading data
 
@@ -68,7 +68,7 @@ a rotated phantom.
 ```julia
 let α = deg2rad(10), z = 3
     # get ellipse parameters at slice z
-    origin, a, b = ellipseparams(sph, z)
+    origin, a, b = BDTools.getellipse(sph, z)
     # get a ellipse's initial rotation angle
     γ = BDTools.findinitialrotation(sph, z)
 
@@ -92,7 +92,7 @@ end
 For a rotation information, we can generate a predictions of rotated phantoms.
 
 ```julia
-res = BDTools.predict(sph, phantom_ts, angles; startmotion=firstrotidx, threshold=.95);
+res = BDTools.groundtruth(sph, phantom_ts, angles; startmotion=firstrotidx, threshold=.95);
 ```
 
 and plot prediction and original data

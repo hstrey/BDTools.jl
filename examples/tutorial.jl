@@ -49,7 +49,7 @@ end
 #
 let α = deg2rad(10), z = 3
     # get ellipse parameters at slice z
-    origin, a, b = ellipseparams(sph, z)
+    origin, a, b = BDTools.getellipse(sph, z)
     # get a ellipse's initial rotation angle
     γ = BDTools.findinitialrotation(sph, z)
 
@@ -71,12 +71,12 @@ end
 # ## Generate rotated predictions
 #
 # For a rotation information, we can generate a predictions of rotated phantoms.
-res = BDTools.predict(sph, phantom_ts, angles; startmotion=firstrotidx, threshold=.95);
+res = BDTools.groundtruth(sph, phantom_ts, angles; startmotion=firstrotidx, threshold=.95);
 
 #
 # and plot prediction and original data
 #
-let x = 42, y = 52, z = 3 # get coordinates
+let x = 42, y = 32, z = 3 # get coordinates
     data, sliceidx, maskcoords = res;
 
     # get a coordinate index
@@ -85,6 +85,6 @@ let x = 42, y = 52, z = 3 # get coordinates
     cidx === nothing && return
 
     # plot data
-    plot(data[:, cidx, z, 1], label="prediction", title="Intensity")
+    plot(data[:, cidx, z, 1], label="prediction", title="Intensity (x=$x, y=$y, z=$z)")
     plot!(data[:, cidx, z, 2], label="original")
 end

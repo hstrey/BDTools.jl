@@ -2,6 +2,14 @@
 DocTestSetup = :(using BDTools)
 ```
 
+## Static Phantom
+
+```@docs
+BDTools.StaticPhantom
+BDTools.staticphantom
+BDTools.groundtruth
+```
+
 ## Ellipse Fitting
 
 ```@docs
@@ -13,6 +21,7 @@ BDTools.canonical
 ## Utils
 
 ```@docs
+BDTools.getellipse
 BDTools.ellipserot
 BDTools.rotate
 BDTools.rotatevoxel

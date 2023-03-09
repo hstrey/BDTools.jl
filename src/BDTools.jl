@@ -180,12 +180,14 @@ function staticphantom(ph::Array{Float64, 4}, sliceinfo::Matrix{Int};
 end
 
 """
-    predict(ph::StaticPhantom, data::AbstractArray, angles::Vector;
-            startmotion=1, threshold=Inf, verbose=false)
+    groundtruth(ph::StaticPhantom, data::AbstractArray, angles::Vector;
+                startmotion=1, threshold=Inf, verbose=false)
 
-Construct a prediction of a phantom motion data given a rotation information
+Construct a prediction of a phantom motion data given a rotation information.
+
+
 """
-function predict(ph::StaticPhantom, data::AbstractArray, angles::Vector;
+function groundtruth(ph::StaticPhantom, data::AbstractArray, angles::Vector;
                  startmotion=1, threshold=Inf, verbose=false)
     # get motion angles
     motionangles = @view angles[startmotion:end]
