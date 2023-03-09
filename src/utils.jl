@@ -1,7 +1,8 @@
 using LinearAlgebra
-using Interpolations
 using Statistics
 using DelimitedFiles
+
+genimg(p::AbstractArray) = p ./ maximum(p)
 
 # 3D Rotations Matrices
 
@@ -75,12 +76,12 @@ end
 
 Construct interpolation function from an image 3D tensor.
 """
-function phantominterp(imgs::AbstractArray; itrptype = BSpline(Quadratic()))
+function phantominterp(imgs::AbstractArray; interpolationtype = BSpline(Quadratic()))
     (r,c,h) = size(imgs)
     xs = 1:r
     ys = 1:c
     zs = 1:h
-    return extrapolate(scale(interpolate(imgs, itrptype), xs, ys, zs), Line())
+    return extrapolate(scale(interpolate(imgs, interpolationtype), xs, ys, zs), Line())
 end
 
 """

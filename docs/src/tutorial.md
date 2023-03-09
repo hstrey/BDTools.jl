@@ -1,35 +1,52 @@
+# Tutorial
+
+Load libraries required for this tutorial.
+
+```julia
 using BDTools
 using Plots
 using NIfTI
 using DelimitedFiles
+````
 
-# ## Loading data
-#
-# First, we load phantom data from a NIfTI formatted file.
-#
+## Loading data
+
+First, we load phantom data from a NIfTI formatted file.
+
+```julia
 const DATA_DIR = "../PhantomData"
 phantom_ts = niread(joinpath(DATA_DIR, "BFC_time_series.nii"));
 sz = size(phantom_ts)
+```
 
-# Next, we load rotation angles from rotation data,
+Next, we load rotation angles from rotation data,
+
+```julia
 angles, firstrotidx = BDTools.getangles(joinpath(DATA_DIR, "epi",  "log.csv"))
+```
 
-# and slice motion information.
+and slice motion information.
+
+```julia
 sliceinfo, _ = readdlm(joinpath(DATA_DIR, "slices.csv"), ',', Int, header=true)
+```
 
-# ## Construct static phantom
-#
-# Use `staticphantom` function to construct a static phantom object
-# by providing phantom data time series and slice motion info.
-# Resulting object contains an ellipse fit for each slice of a static phantom.
-#
+## Construct static phantom
+
+Use `staticphantom` function to construct a static phantom object
+by providing phantom data time series and slice motion info.
+Resulting object contains an ellipse fit for each slice of a static phantom.
+
+```julia
 sph = staticphantom(convert(Array, phantom_ts), sliceinfo);
+```
 
-# ### Show phantom center axis
-#
-# Using phantom fitted ellipse parameters, we construct a phantom center axis (z-axis),
-# and fit ellipse centers on this axis.
-#
+### Show phantom center axis
+
+Using phantom fitted ellipse parameters, we construct a phantom center axis (z-axis),
+and fit ellipse centers on this axis.
+
+```julia
 let ecs = BDTools.centers(sph), rng=collect(-1.:0.15:1.)
     # show original data
     p = scatter(ecs[:,1], ecs[:,2], label="centers", legend=:topleft)
@@ -40,13 +57,15 @@ let ecs = BDTools.centers(sph), rng=collect(-1.:0.15:1.)
     xy = BDTools.fittedcenters(sph)
     scatter!(p, xy[:,1], xy[:,2], label="fitted")
 end
+```
 
-# ## Construct ground truth dataset
-#
-# We can construct a ground truth data at any rotation angle.
-# Providing a rotation angle `α` and a slice coordinate `z`, we generate
-# a rotated phantom.
-#
+## Construct ground truth dataset
+
+We can construct a ground truth data at any rotation angle.
+Providing a rotation angle `α` and a slice coordinate `z`, we generate
+a rotated phantom.
+
+```julia
 let α = deg2rad(10), z = 3
     # get ellipse parameters at slice z
     origin, a, b = ellipseparams(sph, z)
@@ -66,16 +85,19 @@ let α = deg2rad(10), z = 3
     pgen = plot(gen, aspect_ratio=1.0, axis=nothing, framestyle=:none, title="Rotated at $(rad2deg(α))°", legend=:none)
     plot(pave, pgen)
 end
+```
 
+## Generate rotated predictions
 
-# ## Generate rotated predictions
-#
-# For a rotation information, we can generate a predictions of rotated phantoms.
+For a rotation information, we can generate a predictions of rotated phantoms.
+
+```julia
 res = BDTools.predict(sph, phantom_ts, angles; startmotion=firstrotidx, threshold=.95);
+```
 
-#
-# and plot prediction and original data
-#
+and plot prediction and original data
+
+```julia
 let x = 42, y = 52, z = 3 # get coordinates
     data, sliceidx, maskcoords = res;
 
@@ -88,3 +110,4 @@ let x = 42, y = 52, z = 3 # get coordinates
     plot(data[:, cidx, z, 1], label="prediction", title="Intensity")
     plot!(data[:, cidx, z, 2], label="original")
 end
+```

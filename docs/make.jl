@@ -7,13 +7,13 @@ end
 
 deployconfig = Documenter.auto_detect_deploy_system()
 Documenter.post_status(deployconfig; type="pending", repo="github.com/hstrey/BDTools.jl.git")
-using Literate
+# using Literate
 # using Plots # to not capture precompilation output
 
 # generate examples
-EXAMPLE = joinpath(@__DIR__, "..", "examples", "tutorial.jl")
-OUTPUT = joinpath(@__DIR__, "src/generated")
-Literate.markdown(EXAMPLE, OUTPUT)
+#EXAMPLE = joinpath(@__DIR__, "..", "examples", "tutorial.jl")
+#OUTPUT = joinpath(@__DIR__, "src/generated")
+#Literate.markdown(EXAMPLE, OUTPUT)
 
 makedocs(
     format = Documenter.HTML(
@@ -25,7 +25,7 @@ makedocs(
     sitename = "BDTools.jl",
     pages = Any[
         "Home" => "index.md",
-        "Tutorial" => "generated/tutorial.md",
+        "Tutorial" => "tutorial.md",
         "API Reference" => "reference.md",
     ]
 )
