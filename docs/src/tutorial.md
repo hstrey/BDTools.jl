@@ -92,7 +92,7 @@ end
 For a rotation information, we can generate a predictions of rotated phantoms.
 
 ```julia
-gt = BDTools.groundtruth(sph, phantom_ts, angles; startmotion=firstrotidx, threshold=.95)
+gt = groundtruth(sph, phantom_ts, angles; startmotion=firstrotidx, threshold=.95)
 ```
 
 and plot prediction and original data
@@ -106,4 +106,18 @@ let x = 42, y = 52, z = 3 # get coordinates
     plot(gt[x, y, z], label="prediction", title="Intensity (x=$x, y=$y, z=$z)")
     plot!(gt[x, y, z, true], label="original")
 end
+```
+
+A generated phantom ground truth data can be serialized into HDF5 file format.
+Use [`BDTools.serialize`](@ref) function to save data as follows:
+
+```julia
+BDTools.serialize("gt.h5", gt)
+```
+
+for reading serialized phantom ground truth data, use [`BDTools.deserialize`](@ref) function
+that accepts file name and [`GroundTruth`](@ref) type as parameters.
+
+```julia
+gt = BDTools.deserialize("gt.h5", GroundTruth)
 ```

@@ -73,6 +73,19 @@ end
 # For a rotation information, we can generate a predictions of rotated phantoms.
 gt = BDTools.groundtruth(sph, phantom_ts, angles; startmotion=firstrotidx, threshold=.95)
 
+# ## (De)serialize ground truth data
+#
+# The generated phantom ground truth data can be serialized into HDF5 file format.
+# Using `BDTools.serialize` function
+BDTools.serialize("gt.h5", gt)
+
+#
+# for reading serialized phantom ground truth data, use `BDTools.deserialize` function
+# that accepts file name and `GroundTruth` type as parameters.
+#
+gt = BDTools.deserialize("gt.h5", GroundTruth)
+
+
 #
 # and plot prediction and original data
 #

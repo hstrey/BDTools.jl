@@ -2,8 +2,9 @@ module BDTools
 
 using Optim: Optim
 using Interpolations
+using HDF5: HDF5
 
-export StaticPhantom, staticphantom
+export StaticPhantom, staticphantom, GroundTruth, groundtruth
 
 include("segmentation.jl")
 include("ellipse.jl")
@@ -145,7 +146,9 @@ end
 """
     staticphantom(ph::Array{Float64, 4}, sliceinfo::Matrix{Int}; staticslices=1:200)
 
-Construct a static phantom object from phantom time series and slice motion data.
+Construct a static phantom object from phantom time series `ph` and
+slice motion data `sliceinfo`. The parameter `staticslices` allows to select
+a number slices are used for construction of a model.
 """
 function staticphantom(ph::Array{Float64, 4}, sliceinfo::Matrix{Int};
                        staticslices=1:200, interpolationtype = BSpline(Quadratic()))
@@ -279,6 +282,52 @@ function groundtruth(ph::StaticPhantom, data::AbstractArray, angles::Vector;
     sliceids = Int.(ph.sliceinfo[validslices,2])
     # return predictions, slice ids & coordinate map
     GroundTruth(res, sliceids, maskidx)
+end
+
+"""
+    serialize(filepath::String, gt::GroundTruth)
+
+Serialize a phantom ground truth data object `gt` into HDF5-formatted file.
+
+Example:
+
+```julia
+julia> BDTools.serialize("gt.h5", gt)
+```
+"""
+function serialize(filepath::String, gt::GroundTruth)
+    HDF5.h5open(filepath, "w") do io
+        g = HDF5.create_group(io, "GroundTruth")
+        dset = HDF5.create_dataset(g, "data", eltype(gt.data), size(gt.data))
+        HDF5.write(dset, gt.data)
+        dset = HDF5.create_dataset(g, "sliceindex", eltype(gt.sliceindex), size(gt.sliceindex))
+        HDF5.write(dset, gt.sliceindex)
+        dset = HDF5.create_dataset(g, "maskindex", eltype(gt.maskindex), size(gt.maskindex))
+        HDF5.write(dset, gt.maskindex)
+    end
+end
+
+"""
+    deserialize(filepath::String, ::Type{GroundTruth})
+
+Deserialize a phantom ground truth data from a HDF5-formatted file, and
+construct `GroundTruth` object.
+
+Example:
+
+```julia
+julia> gt = BDTools.deserialize("gt.h5", GroundTruth)
+GroundTruth: (598, 359, 9, 2)
+```
+"""
+function deserialize(filepath::String, ::Type{GroundTruth})
+    HDF5.h5open(filepath, "r") do io
+        GroundTruth(
+            io["GroundTruth/data"] |> read,
+            io["GroundTruth/sliceindex"] |> read,
+            io["GroundTruth/maskindex"] |> read
+        )
+    end
 end
 
 end # module BDTools

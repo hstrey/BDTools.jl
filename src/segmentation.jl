@@ -1,8 +1,6 @@
 using Images
 using ImageSegmentation
 
-genimg(p::AbstractArray) = p ./ maximum(p)
-
 function genunitimg!(img, arr)
     minval, maxval = extrema(arr)
     diff = maxval-minval
@@ -50,7 +48,7 @@ end
 """
     edge(segs::SegmentedImage) -> Matrix{Bool}
 
-Construc an edge mask for a segmented image.
+Construct an edge mask for a segmented image.
 """
 function edge(segs::SegmentedImage; segmentid=3, upper=80, lower=20)
     # get inner region

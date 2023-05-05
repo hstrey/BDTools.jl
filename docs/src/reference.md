@@ -7,7 +7,18 @@ DocTestSetup = :(using BDTools)
 ```@docs
 BDTools.StaticPhantom
 BDTools.staticphantom
+BDTools.findinitialrotation(::StaticPhantom, ::Int)
+BDTools.mask(::StaticPhantom, ::Int)
+BDTools.GroundTruth
 BDTools.groundtruth
+Base.getindex(::GroundTruth, ::Int, ::Int)
+Base.getindex(::GroundTruth, ::Int, ::Int, ::Int, ::Bool)
+```
+
+### I/O
+```@docs
+BDTools.serialize
+BDTools.deserialize
 ```
 
 ## Ellipse Fitting
@@ -29,4 +40,5 @@ BDTools.simulated_coordinates
 BDTools.phantominterp
 BDTools.fitline
 BDTools.getangles
+BDTools.maskindex
 ```
