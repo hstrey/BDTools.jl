@@ -71,20 +71,17 @@ end
 # ## Generate rotated predictions
 #
 # For a rotation information, we can generate a predictions of rotated phantoms.
-res = BDTools.groundtruth(sph, phantom_ts, angles; startmotion=firstrotidx, threshold=.95);
+gt = BDTools.groundtruth(sph, phantom_ts, angles; startmotion=firstrotidx, threshold=.95)
 
 #
 # and plot prediction and original data
 #
 let x = 42, y = 32, z = 3 # get coordinates
-    data, sliceidx, maskcoords = res;
-
-    # get a coordinate index
-    c = CartesianIndex(x,y)
-    cidx = findfirst(m->m == c, maskcoords)
+    # get a masked coordinate index
+    cidx = gt[x, y]
     cidx === nothing && return
 
     # plot data
-    plot(data[:, cidx, z, 1], label="prediction", title="Intensity (x=$x, y=$y, z=$z)")
-    plot!(data[:, cidx, z, 2], label="original")
+    plot(gt[x,y,z], label="prediction", title="Intensity (x=$x, y=$y, z=$z)")
+    plot!(gt[x,y,z,true], label="original")
 end

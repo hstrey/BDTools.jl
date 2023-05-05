@@ -180,12 +180,66 @@ function staticphantom(ph::Array{Float64, 4}, sliceinfo::Matrix{Int};
 end
 
 """
+Phantom Simulated Ground Truth
+
+A ground truth representation of a phantom motion data given a rotation information.
+It contains a tensor of original and predicted values for the masked volume of
+an original phantom data, a slice index map, and a mask index map for translation to
+the original phantom coordinate space.
+"""
+struct GroundTruth
+    data::Array{Float64, 4}
+    sliceindex::Vector{Int}
+    maskindex::Matrix{Int}
+end
+Base.show(io::IO, gt::GroundTruth) = print(io, "GroundTruth: $(size(gt.data))")
+
+"""
+    getindex(gt::GroundTruth, x::Int, y::Int)
+
+Return an index of a masked phantom volume.
+"""
+Base.getindex(gt::GroundTruth, x::Int, y::Int) =
+    findfirst(c -> c[1] == x && c[2] == y, eachcol(gt.maskindex))
+
+"""
+    getindex(gt::GroundTruth, x::Int, y::Int, z::Int, original::Bool=false)
+
+Return a phantom predicted ground truth data in the coordinate `(x,y,z)`.
+If `original` is set to `true`, original phantom data is returned.
+"""
+function Base.getindex(gt::GroundTruth, x::Int, y::Int, z::Int, original::Bool=false)
+    midx = gt[x, y]
+    isnothing(midx) && return
+    view(gt.data, :, midx, z, (original+1))
+end
+
+"""
+    maskindex(mask::BitMatrix)
+
+Construct a coordinate index for phantom slice mask.
+"""
+function maskindex(mask::BitMatrix)
+    n = sum(mask)
+    res = zeros(Int, 2, n)
+    ci = 1
+    for (c,v) in pairs(mask)
+        !v && continue
+        res[1, ci] = c[1]
+        res[2, ci] = c[2]
+        ci += 1
+    end
+    return res
+end
+
+"""
     groundtruth(ph::StaticPhantom, data::AbstractArray, angles::Vector;
                 startmotion=1, threshold=Inf, verbose=false)
 
-Construct a prediction of a phantom motion data given a rotation information.
-
-
+Construct a prediction of a phantom motion data given a rotation information,
+and return a tensor of original and predicted values for the masked volume of
+the phantom `ph`, slice indices, and mask index map for translation to the original
+phantom coordinate space.
 """
 function groundtruth(ph::StaticPhantom, data::AbstractArray, angles::Vector;
                  startmotion=1, threshold=Inf, verbose=false)
@@ -194,11 +248,12 @@ function groundtruth(ph::StaticPhantom, data::AbstractArray, angles::Vector;
     nrots = length(motionangles)
 
     # take mask of a first slice
-    maskmtx = mask(ph, 1; threshold)
-    ncoords = sum(maskmtx)
+    maskidx = mask(ph, 1; threshold) |> maskindex
+    ncoords = size(maskidx, 2)
+    #ncoords = sum(maskmtx)
 
-    # get coordinate map
-    cmap = findall(maskmtx)
+    # # get coordinate map
+    # cmap = findall(maskmtx)
 
     # get valid slices
     validslices = ph.sliceinfo[:,1] .> 0
@@ -209,8 +264,8 @@ function groundtruth(ph::StaticPhantom, data::AbstractArray, angles::Vector;
         # get a ellipse's params
         origin, a, b = getellipse(ph, z)
         γ = findinitialrotation(ph, z)
-        for (ii, α) in pairs(motionangles), (jj,ci) in pairs(cmap)
-            i, j = ci.I
+        for (ii, α) in pairs(motionangles), (jj,ci) in pairs(eachcol(maskidx))
+            i, j = ci
             # Coordinate transformation
             coord = ellipserot(α, γ, a, b)*([i,j,z].-origin).+origin
             # interpolate intensities
@@ -223,7 +278,7 @@ function groundtruth(ph::StaticPhantom, data::AbstractArray, angles::Vector;
     # get slice identifiers
     sliceids = Int.(ph.sliceinfo[validslices,2])
     # return predictions, slice ids & coordinate map
-    res, sliceids, cmap
+    GroundTruth(res, sliceids, maskidx)
 end
 
 end # module BDTools
