@@ -1,8 +1,8 @@
 using NIfTI
 
-function bfield_correction(image_path, mask_path; spline_order=3, num_control_points=4)
+function bfield_correction(image_path, mask_path; spline_order=3, num_control_points=[4, 4, 4])
 	spline_order = pyint(spline_order)
-	num_control_points = pyint(num_control_points)
+	num_control_points = pylist(num_control_points)
 
 	inputImage = sitk.ReadImage(image_path, sitk.sitkFloat32)
 	image = inputImage
