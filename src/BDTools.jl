@@ -18,6 +18,7 @@ include("bfield.jl")
 include("segmentation.jl")
 include("ellipse.jl")
 include("utils.jl")
+include("acqtimes.jl")
 
 """
 A static phantom model
