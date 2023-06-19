@@ -255,9 +255,12 @@ the phantom `ph`, slice indices, and mask index map for translation to the origi
 phantom coordinate space.
 """
 function groundtruth(ph::StaticPhantom, data::AbstractArray, angles::Vector;
-                 startmotion=1, threshold=Inf, verbose=false)
+                 startmotion=1, threshold=Inf, verbose=false, flipangles=false)
     # get motion angles
     motionangles = @view angles[startmotion:end]
+    if flipangles
+        motionangles .= -motionangles
+    end
     nrots = length(motionangles)
 
     # take mask of a first slice
