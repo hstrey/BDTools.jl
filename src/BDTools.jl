@@ -19,6 +19,7 @@ include("segmentation.jl")
 include("ellipse.jl")
 include("utils.jl")
 include("acqtimes.jl")
+include("qualitymeasures.jl")
 
 """
 A static phantom model
