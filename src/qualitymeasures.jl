@@ -32,6 +32,6 @@ function mul_noise(pred_ts, orig_ts)
     mymodel = noise_model(pts_norm, ots_norm)
     chain = Turing.sample(mymodel, NUTS(0.65),1000)
     sigma = chain[:σ]
-    ampl = chain[:ampl]
-    return mean(sigma),std(sigma),mean(ampl),std(ampl)
+    amplitude = chain[:ampl]
+    return mean(sigma),std(sigma),mean(amplitude),std(amplitude)
 end
