@@ -10,6 +10,7 @@ export sitk
 
 using Optim: Optim
 using Interpolations
+using Interpolations: scale
 using HDF5: HDF5
 
 export StaticPhantom, staticphantom, GroundTruth, groundtruth
