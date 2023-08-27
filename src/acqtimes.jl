@@ -12,7 +12,7 @@ end
 function write_acqtimes(slices,acqt,outfile)
     io = open(outfile, "w")
     write(io,"Time,Slice\n")
-    for i in 1:length(acqt)
+    for i in eachindex(acqt)
         write(io, string(acqt[i])*","*string(slices[i])*"\n")
     end
     close(io)
