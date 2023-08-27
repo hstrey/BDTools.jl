@@ -26,7 +26,7 @@ include("qualitymeasures.jl")
 A static phantom model
 """
 struct StaticPhantom
-    data::Array{Float64, 3}
+    data::Array{Float64,3}
     ellipses::Matrix{Float64}
     sliceinfo::Matrix{Float64}
     center::Vector{Float64}
@@ -43,21 +43,21 @@ Base.size(ph::StaticPhantom) = size(ph.data)
 
 Return centers of ellipses fitted to each slice of a static phantom `ph`.
 """
-centers(ph::StaticPhantom) = ph.ellipses[:,1:2]
+centers(ph::StaticPhantom) = ph.ellipses[:, 1:2]
 
 """
     predictcenter(ph::StaticPhantom, t::Real)
 
 Return a center coordinate of a phantom slice given a parametric value `t`.
 """
-predictcenter(ph::StaticPhantom, t::Real) = ph.center + ph.centersdir*t
+predictcenter(ph::StaticPhantom, t::Real) = ph.center + ph.centersdir * t
 
 """
     fittedcenters(ph::StaticPhantom)
 
 Return a projection of fitted ellipses' center to a center axis.
 """
-fittedcenters(ph::StaticPhantom) = mapslices(c->fittedcenter(ph, vec(c)), centers(ph), dims=2)
+fittedcenters(ph::StaticPhantom) = mapslices(c -> fittedcenter(ph, vec(c)), centers(ph), dims=2)
 
 """
     fittedcenter(ph::StaticPhantom)
@@ -67,7 +67,7 @@ Return a projection of fitted ellipses' center to a center axis.
 function fittedcenter(ph::StaticPhantom, p::Vector)
     p0 = ph.center
     dir = ph.centersdir
-    p0+(p-p0)'*dir*dir
+    p0 + (p - p0)' * dir * dir
 end
 
 """
@@ -82,7 +82,7 @@ function mask(ph::StaticPhantom, z::Int; threshold=Inf)
     # Mask voxels over threshold
     if !isinf(threshold)
         o, a, b = getellipse(ph, z)
-        threshfn = ci -> (ci.I[1]-o[1])^2/a^2+(ci.I[2]-o[2])^2/b^2 > threshold
+        threshfn = ci -> (ci.I[1] - o[1])^2 / a^2 + (ci.I[2] - o[2])^2 / b^2 > threshold
         maskidxs = findall(maskmtx)
         threshed = threshfn.(maskidxs)
         maskmtx[maskidxs[threshed]] .= 0
@@ -99,7 +99,7 @@ function getellipse(ph::StaticPhantom, z::Int)
     @assert 1 <= z <= size(ph)[3] "Invalid slice index"
     # get center of a phantom
     cs = centers(ph)
-    start = fittedcenter(ph, cs[z,:])
+    start = fittedcenter(ph, cs[z, :])
     # 3D origin
     origin = [start..., z]
     # ellipse axes
@@ -116,10 +116,10 @@ elliptical rotation. An `intensity` parameter specifies an intensity percentage
 for selection of points as parameters for optimization task that determines
 phantom initial rotation.
 """
-function findinitialrotation(ph::StaticPhantom, z::Int; intensity = 0.01)
+function findinitialrotation(ph::StaticPhantom, z::Int; intensity=0.01)
     # get a phantom slice
     @assert 1 <= z <= size(ph)[3] "Invalid slice index"
-    img = @view ph.data[:,:,z]
+    img = @view ph.data[:, :, z]
 
     # mask all points outside the internal region of a phantom
     maskidx = mask(ph, z)
@@ -127,8 +127,8 @@ function findinitialrotation(ph::StaticPhantom, z::Int; intensity = 0.01)
 
     # threshold intensity to get a collection of darkest points
     mini, maxi = extrema(masked)
-    irng = maxi-mini
-    mininidx = findall(masked .< mini+irng*intensity)
+    irng = maxi - mini
+    mininidx = findall(masked .< mini + irng * intensity)
 
     # get points' coordinates
     pts = findall(maskidx)[mininidx]
@@ -144,8 +144,8 @@ function findinitialrotation(ph::StaticPhantom, z::Int, pts::Vector{CartesianInd
         res = 0
         for ci in pts
             p = [ci.I..., z]
-            coords = map(α->ellipserot(α, γ, a, b)*(p.-ori).+ori, 0.0:0.1:π)
-            sim = map(c->ph.interpolation(c...), coords)
+            coords = map(α -> ellipserot(α, γ, a, b) * (p .- ori) .+ ori, 0.0:0.1:π)
+            sim = map(c -> ph.interpolation(c...), coords)
             res += abs(-(extrema(sim)...))
         end
         res
@@ -162,16 +162,16 @@ Construct a static phantom object from phantom time series `ph` and
 slice motion data `sliceinfo`. The parameter `staticslices` allows to select
 a number slices are used for construction of a model.
 """
-function staticphantom(ph::Array{Float64, 4}, sliceinfo::Matrix{Int};
-                       staticslices=1:200, interpolationtype = BSpline(Quadratic()))
+function staticphantom(ph::Array{Float64,4}, sliceinfo::Matrix{Int};
+    staticslices=1:200, interpolationtype=BSpline(Quadratic()))
     sno = size(sliceinfo, 1)
     @assert size(ph, 3) == sno "Incompatible data dimensions"
 
     # volume averaged over static slices
-    staticph = dropdims(mean(view(ph,:,:,:,staticslices), dims=4), dims=4);
+    staticph = dropdims(mean(view(ph, :, :, :, staticslices), dims=4), dims=4)
 
     # skip slices
-    useslices = findall(.!iszero, sliceinfo[:,1])
+    useslices = findall(.!iszero, sliceinfo[:, 1])
 
     # keep slices segmentation
     segments = Array{SegmentedImage}(undef, sno)
@@ -179,9 +179,9 @@ function staticphantom(ph::Array{Float64, 4}, sliceinfo::Matrix{Int};
     # get ellipse parameters over averaged static volume (z-slices)
     ellipses = zeros(sno, 9)
     for i in 1:sno
-        img = view(staticph,:,:,i)
+        img = view(staticph, :, :, i)
         segments[i] = seg = segment3(img)
-        ellipses[i,:] = fitellipse(img, seg, edge(seg); verbose=false)
+        ellipses[i, :] = fitellipse(img, seg, edge(seg); verbose=false)
     end
 
     # construct phantom center axis
@@ -203,7 +203,7 @@ an original phantom data, a slice index map, and a mask index map for translatio
 the original phantom coordinate space.
 """
 struct GroundTruth
-    data::Array{Float64, 4}
+    data::Array{Float64,4}
     sliceindex::Vector{Int}
     maskindex::Matrix{Int}
 end
@@ -226,7 +226,7 @@ If `original` is set to `true`, original phantom data is returned.
 function Base.getindex(gt::GroundTruth, x::Int, y::Int, z::Int, original::Bool=false)
     midx = gt[x, y]
     isnothing(midx) && return
-    view(gt.data, :, midx, z, (original+1))
+    view(gt.data, :, midx, z, (original + 1))
 end
 
 """
@@ -238,7 +238,7 @@ function maskindex(mask::BitMatrix)
     n = sum(mask)
     res = zeros(Int, 2, n)
     ci = 1
-    for (c,v) in pairs(mask)
+    for (c, v) in pairs(mask)
         !v && continue
         res[1, ci] = c[1]
         res[2, ci] = c[2]
@@ -257,7 +257,7 @@ the phantom `ph`, slice indices, and mask index map for translation to the origi
 phantom coordinate space.
 """
 function groundtruth(ph::StaticPhantom, data::AbstractArray, angles::Vector;
-                 startmotion=1, threshold=Inf, verbose=false, flipangles=false)
+    startmotion=1, threshold=Inf, verbose=false, flipangles=false)
     # get motion angles
     motionangles = @view angles[startmotion:end]
     if flipangles
@@ -274,7 +274,7 @@ function groundtruth(ph::StaticPhantom, data::AbstractArray, angles::Vector;
     # cmap = findall(maskmtx)
 
     # get valid slices
-    validslices = ph.sliceinfo[:,1] .> 0
+    validslices = ph.sliceinfo[:, 1] .> 0
     nslices = sum(validslices)
     # construct predictions
     res = zeros(nrots, ncoords, nslices, 2)
@@ -282,19 +282,19 @@ function groundtruth(ph::StaticPhantom, data::AbstractArray, angles::Vector;
         # get a ellipse's params
         origin, a, b = getellipse(ph, z)
         γ = findinitialrotation(ph, z)
-        for (ii, α) in pairs(motionangles), (jj,ci) in pairs(eachcol(maskidx))
+        for (ii, α) in pairs(motionangles), (jj, ci) in pairs(eachcol(maskidx))
             i, j = ci
             # Coordinate transformation
-            coord = ellipserot(α, γ, a, b)*([i,j,z].-origin).+origin
+            coord = ellipserot(α, γ, a, b) * ([i, j, z] .- origin) .+ origin
             # interpolate intensities
             pred = ph.interpolation(coord...)
             res[ii, jj, kk, 1] = pred
-            res[ii, jj, kk, 2] = data[i,j,z,ii+startmotion-1]
+            res[ii, jj, kk, 2] = data[i, j, z, ii+startmotion-1]
         end
         verbose && println("Processed slice: $z")
     end
     # get slice identifiers
-    sliceids = Int.(ph.sliceinfo[validslices,2])
+    sliceids = Int.(ph.sliceinfo[validslices, 2])
     # return predictions, slice ids & coordinate map
     GroundTruth(res, sliceids, maskidx)
 end

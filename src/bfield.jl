@@ -10,9 +10,9 @@ function bfield_correction(image_path, mask_path; spline_order=3, num_control_po
     # Check that num_control_points is the same dimension as the image
     sz = image.GetSize()
     @assert(
-		length(pyconvert(Vector, sz)) == length(pyconvert(Vector, num_control_points)), 
-		"Incorrect size for number of control points, make sure the vector matches the dimensions of the image"
-	)
+        length(pyconvert(Vector, sz)) == length(pyconvert(Vector, num_control_points)),
+        "Incorrect size for number of control points, make sure the vector matches the dimensions of the image"
+    )
 
     maskImage = sitk.ReadImage(mask_path, sitk.sitkUInt8)
 
