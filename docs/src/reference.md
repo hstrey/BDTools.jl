@@ -42,3 +42,9 @@ BDTools.fitline
 BDTools.getangles
 BDTools.maskindex
 ```
+## QualityMeasures
+
+```@docs
+BDTools.st_snr
+BDTools.mul_noise
+```
