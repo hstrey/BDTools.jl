@@ -63,7 +63,7 @@ end
 
 Returns a `GroundTruth` object, a standardized ground truth data, and standardization parameters, i.e. μ and σ.
 """
-function load_ground_truth(fname::String; datatype=Float32, normalization=normalize)
+function load_ground_truth(fname::String; datatype=Float32, normalization=standardize)
     # load ground truth data
     gt = BDTools.deserialize(fname, BDTools.GroundTruth)
 
@@ -74,7 +74,11 @@ function load_ground_truth(fname::String; datatype=Float32, normalization=normal
             (size(gt.data,1), :, 1))
         , [1,3,2]))
 
-    return gt, normalization(simulated)...
+    # remove any time series that contain NaNs
+    clean_idxs = [!any(isnan.(s)) for s in eachslice(simulated, dims=3)]
+    cleaned_simulated = @view simulated[:,:,clean_idxs]
+
+    return gt, findall(iszero, clean_idxs), normalization(cleaned_simulated)...
 end
 
 function mask_time_series(gt::BDTools.GroundTruth, data::AbstractArray)
@@ -89,7 +93,8 @@ end
 Return standardized phantom time series data, and standardization parameters, i.e. μ and σ.
 """
 function load_phantom(gt::BDTools.GroundTruth, phantomfile::String;
-                      datatype=Float32, valid_slices=false, normalization=normalize)
+                      datatype=Float32, valid_slices=false,
+                      remove=Int[], normalization=standardize)
     phantom = niread(phantomfile);
     gtsize = size(gt.data)
     phsize = size(phantom)
@@ -106,12 +111,11 @@ function load_phantom(gt::BDTools.GroundTruth, phantomfile::String;
     masked_valid_data = @view masked_data[:, slice_index, :]
     ts_data = permutedims(reshape(masked_valid_data, (:, 1, size(masked_valid_data, 3))), [3,2,1])
 
-    return normalization(ts_data)
+    # mask remove
+    remove_indices = [i ∉ remove for i in 1:size(ts_data,3)]
+    clean_ts_data = @view ts_data[:, :, remove_indices]
 
-    # mu = mean(data, dims=4)
-    # sigma = std(data, dims=4, mean=mu)
-    # broadcast!((x, mu, sigma) -> (x - mu)/sigma, data, data, mu, sigma)
-    # return (data, mu, sigma)
+    return normalization(clean_ts_data)
 end
 
 anynan(x) = any(y -> any(isnan, y), x)
@@ -126,6 +130,7 @@ Training parameters for a denoising network.
 - `kernel_size`: a convolutional layer kernel size (default value is `9`)
 - `layers`: a number of denoiser network convolutional layers (default value is `6`)
 - `save_path`: a path to a location where a NN model is saved
+- `save_best`: if `true` then the denoiser model is saved on each successful loss improvement
 - `seed`: a PRNG seed (default value is `180181`)
 - `test_split`: a fraction of a phantom data dedicated to a testing set (default value is `0.33`)
 """
@@ -138,6 +143,7 @@ Base.@kwdef mutable struct TrainParameters
     kernel_size::Int = 9
     layers::Int = 6
     save_path::String = "./"
+    save_best::Bool = false
     seed::Int = 180181
     test_split = 1/5
 end
@@ -185,10 +191,14 @@ end
 Returns a negative R^2 value for predicted, `y_pred`, and "true", `y_true`, values.
 """
 function negr2(y_pred, y_true)
-    SS_res =  sum(abs2, y_true .- y_pred)
     SS_tot = sum(abs2, y_true .- mean(y_true))
-    loss2 =  ( 1 - SS_res/(SS_tot + eps()) )
-    return -loss2
+    return negr2(y_pred, y_true, SS_tot)
+end
+
+function negr2(y_pred, y_true, SS_tot)
+    SS_res =  sum(abs2, y_true .- y_pred)
+    r2 =  ( 1 - SS_res/(SS_tot + eps()) )
+    return -r2
 end
 
 """
@@ -247,10 +257,11 @@ function train!(denoiser::DenoiseNet, sim::AbstractArray{T,3}, ori::AbstractArra
     best_loss = Inf
     last_improvement = 0
     losses = T[]
+    ss_tot_test = sum(abs2, test_original .- mean(test_original))
     for epoch_idx in 1:args.epochs
 
         # Train for a single epoch
-        etime = @elapsed Flux.train!(model, train_data, opt) do m, x, y
+        elapsed = @elapsed Flux.train!(model, train_data, opt) do m, x, y
             lossfn(m(x), y)
         end
 
@@ -261,17 +272,17 @@ function train!(denoiser::DenoiseNet, sim::AbstractArray{T,3}, ori::AbstractArra
         end
 
         # Calculate loss
-        loss = lossfn(model(test_original), test_simulated)
+        loss = lossfn(model(test_original), test_simulated, ss_tot_test)
         push!(losses, loss)
-        @info(@sprintf("[%d]: Test loss: %.7f. Elapsed: %.3fs", epoch_idx, loss, etime))
+        @info(@sprintf("[%d]: Test loss: %.7f. Elapsed: %.3fs", epoch_idx, loss, elapsed))
 
-        # skip negative R2 loss
+        #TODO: find why loss negative, meanwhile skip negative loss
         loss < 0 && continue
 
         # If this is the best loss we've seen so far, save the model out
         if loss <= best_loss
             @info(" -> New best loss: $(loss)!")
-            if !isinf(best_loss)
+            if !isinf(best_loss) && args.save_best
                 save("ph_tmp", denoiser, epoch = epoch_idx, loss = loss)
             end
             # skip first epoch
@@ -329,7 +340,7 @@ end
 Denoise `data` using a denoseing CNN `model`. The data input should be standardized.
 """
 function denoise(model::DenoiseNet, data)
-    denoised = (model.model(data) |> model.device) |> Flux.cpu
+    denoised = model.model(data |> model.device) |> Flux.cpu
     return denoised
 end
 
