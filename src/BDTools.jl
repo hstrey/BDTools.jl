@@ -13,7 +13,7 @@ using Interpolations
 using Interpolations: scale
 using HDF5: HDF5
 
-export StaticPhantom, staticphantom, GroundTruth, groundtruth
+export StaticPhantom, staticphantom, GroundTruth, groundtruth, DenoiseNet
 
 include("bfield.jl")
 include("segmentation.jl")
@@ -344,5 +344,10 @@ function deserialize(filepath::String, ::Type{GroundTruth})
         )
     end
 end
+
+# Denoiser CNN
+include("denoiser.jl")
+using .Denoiser
+using .Denoiser: Denoiser
 
 end # module BDTools

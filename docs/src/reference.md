@@ -48,3 +48,14 @@ BDTools.maskindex
 BDTools.st_snr
 BDTools.mul_noise
 ```
+
+## Denoiser
+
+```@docs
+BDTools.load_ground_truth
+BDTools.load_phantom
+BDTools.DenoiseNet
+BDTools.TrainParameters
+BDTools.train!
+BDTools.denoise
+```
