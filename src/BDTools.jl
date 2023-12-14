@@ -363,7 +363,7 @@ end
 function deserialize(filepath::String, ::Type{GroundTruthCleaned})
     HDF5.h5open(filepath, "r") do io
         GroundTruthCleaned(
-            io["GroundTruth/data"] |> read
+            io["GroundTruthCleaned/data"] |> read
         )
     end
 end
