@@ -13,7 +13,7 @@ using Interpolations
 using Interpolations: scale
 using HDF5: HDF5
 
-export StaticPhantom, staticphantom, GroundTruth, groundtruth, DenoiseNet
+export StaticPhantom, staticphantom, GroundTruth, GroundTruthCleaned, groundtruth, DenoiseNet
 
 include("bfield.jl")
 include("segmentation.jl")
