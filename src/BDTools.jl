@@ -207,6 +207,11 @@ struct GroundTruth
     sliceindex::Vector{Int}
     maskindex::Matrix{Int}
 end
+
+struct GroundTruthCleaned
+    data::Array{Float64,3}
+end
+
 Base.show(io::IO, gt::GroundTruth) = print(io, "GroundTruth: $(size(gt.data))")
 
 """
@@ -301,6 +306,7 @@ end
 
 """
     serialize(filepath::String, gt::GroundTruth)
+    serialize(filepath::String, gt::GroundTruthCleaned)
 
 Serialize a phantom ground truth data object `gt` into HDF5-formatted file.
 
@@ -322,8 +328,17 @@ function serialize(filepath::String, gt::GroundTruth)
     end
 end
 
+function serialize(filepath::String, gt::GroundTruthCleaned)
+    HDF5.h5open(filepath, "w") do io
+        g = HDF5.create_group(io, "GroundTruthCleaned")
+        dset = HDF5.create_dataset(g, "data", eltype(gt.data), size(gt.data))
+        HDF5.write(dset, gt.data)
+    end
+end
+
 """
     deserialize(filepath::String, ::Type{GroundTruth})
+    deserialize(filepath::String, ::Type{GroundTruthCleaned})
 
 Deserialize a phantom ground truth data from a HDF5-formatted file, and
 construct `GroundTruth` object.
@@ -341,6 +356,14 @@ function deserialize(filepath::String, ::Type{GroundTruth})
             io["GroundTruth/data"] |> read,
             io["GroundTruth/sliceindex"] |> read,
             io["GroundTruth/maskindex"] |> read
+        )
+    end
+end
+
+function deserialize(filepath::String, ::Type{GroundTruthCleaned})
+    HDF5.h5open(filepath, "r") do io
+        GroundTruthCleaned(
+            io["GroundTruth/data"] |> read
         )
     end
 end
