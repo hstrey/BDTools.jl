@@ -54,7 +54,7 @@ Form a training set from a standardized data by combining original dataset
 with it's reverse over dimension `dims`.
 """
 function training_set(data::AbstractArray; dims=3)
-    rev = reverse(data, dims=dims)
+    rev = reverse(data, dims=1) # reverse time
     cat(data, rev, dims=dims)
 end
 
