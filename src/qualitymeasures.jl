@@ -18,11 +18,10 @@ end
 mul_noise(pred_ts, orig_ts)
 
 Calculates the amplitudes of white and multiplicative noise using HMC sampling
+Expects normalized pred_ts (mean=0, std=1) and orig_ts (mean=0, std using pred_ts)
 
 """
 function mul_noise(pred_ts, orig_ts)
-    pts_norm = (pred_ts .- mean(pred_ts))/std(pred_ts)
-    ots_norm = (orig_ts .- mean(orig_ts))/std(pred_ts)
     mymodel = noise_model(pts_norm, ots_norm)
     chain = Turing.sample(mymodel, NUTS(0.65), 1000)
     sigma = chain[:σ]
@@ -37,7 +36,7 @@ Calculates the standardized signal-to-noise ratio: Power(signal)/Power(noise)
 
 """
 function st_snr(pred_ts, orig_ts)
-    pts_norm = pred_ts .- mean(pred_ts)
-    ots_norm = orig_ts .- mean(orig_ts)
-    return std(pts_norm)^2 / std(ots_norm .- pts_norm)^2
+    pts_std = std(pred_ts, dims=1)
+    noise_std = std(orig_ts .- pred_ts, dims=1)
+    return mean(pts_std .^ 2 ./ noise_std .^2), std(pts_std .^ 2 ./ noise_std .^2)
 end
