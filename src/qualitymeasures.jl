@@ -22,7 +22,7 @@ Expects normalized pred_ts (mean=0, std=1) and orig_ts (mean=0, std using pred_t
 
 """
 function mul_noise(pred_ts, orig_ts)
-    mymodel = noise_model(pts_norm, ots_norm)
+    mymodel = noise_model(pred_ts, orig_ts)
     chain = Turing.sample(mymodel, NUTS(0.65), 1000)
     sigma = chain[:σ]
     amplitude = chain[:ampl]
