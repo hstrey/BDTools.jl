@@ -342,7 +342,7 @@ function train!(denoiser::DenoiseNet, sim::AbstractArray{T,3}, ori::AbstractArra
     end
 
     # return losses
-    return losses
+    return losses, test_original, test_simulated
 end
 
 """
