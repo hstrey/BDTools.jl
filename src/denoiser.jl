@@ -149,6 +149,8 @@ Base.@kwdef mutable struct TrainParameters
 end
 
 """
+    Denoiser Model
+
 A wrapper type for denoiser model. It contains deep neural network parameters,
 a loss function, and training parameters.
 """
@@ -159,9 +161,18 @@ mutable struct DenoiseNet{LF}
     parameters::TrainParameters
 end
 
-function DenoiseNet(params = TrainParameters(); dev=Flux.cpu)
-    net = denoiser(;layers = params.layers, kersize=params.kernel_size)
-    DenoiseNet(net |> dev, negr2, dev, params)
+"""
+    DenoiseNet(params = TrainParameters(); chain=denoiser, loss=negr2, dev=Flux.cpu)
+
+Construct a denoiser CNN model with specified training parameters, [`params`](@ref TrainParameters).
+Using keyword arguments following parameters of the model can be modified:
+- `chain`: a CNN structure represented as `Flux.Chain`
+- `loss`: a loss function used for training the model
+- `dev`: a location of the network model (`Flux.cpu` or `Flux.gpu`)
+"""
+function DenoiseNet(params = TrainParameters(); chain=denoiser, loss=negr2, dev=Flux.cpu, kwargs...)
+    net = chain(;layers = params.layers, kersize=params.kernel_size, kwargs...)
+    DenoiseNet(net |> dev, loss, dev, params)
 end
 
 """
@@ -170,7 +181,7 @@ end
 Construct a denoiser deep CNN network with a convolution dimension `convdim`,
 a kernel size `kersize`, and a number of `layers`.
 """
-function denoiser(;convdim=18, kersize=9, layers=6)
+function denoiser(;convdim=18, kersize=9, layers=6, kwargs...)
     Chain(
         # 1st layer, Conv+sigmoid
         Conv((kersize,), 1=>convdim, sigmoid, pad=SamePad()),
@@ -181,6 +192,34 @@ function denoiser(;convdim=18, kersize=9, layers=6)
         ) for i in 1:layers)...,
         # last layer, Conv
         Dropout(0.2),
+        Conv((1,), convdim=>1, pad=SamePad())
+    )
+end
+
+function denoiser2(;convdim=18, kersize=9, layers=6, maxpool=30, input=600, kwargs...)
+    h = layers >> 1
+    hidden = round(Int, input/maxpool)
+    Chain(
+        # 1st layer, Conv+sigmoid
+        Conv((kersize,), 1=>convdim, tanh, pad=SamePad()),
+        # 3 layers, Conv+BN+sigmoid
+        (Chain(
+            Conv((kersize,), convdim=>convdim, pad=SamePad()),
+            BatchNorm(convdim, tanh)
+        ) for i in 1:h)...,
+        # dense layer in the middle
+        Flux.MaxPool((maxpool,), pad=SamePad()),
+        Flux.flatten,
+        Dense(hidden*convdim=>hidden*convdim),
+        X -> reshape(X, hidden, convdim, :),
+        Upsample(scale=(maxpool,1)),
+        # 3 layers, Conv+BN+sigmoid
+        (Chain(
+            Conv((kersize,), convdim=>convdim, pad=SamePad()),
+            BatchNorm(convdim, tanh)
+        ) for i in 1:(layers-h))...,
+        # last layer, Conv
+        # Dropout(0.2),
         Conv((1,), convdim=>1, pad=SamePad())
     )
 end
@@ -197,7 +236,7 @@ end
 
 function negr2(y_pred, y_true, SS_tot)
     SS_res =  sum(abs2, y_true .- y_pred)
-    r2 =  ( 1 - SS_res/(SS_tot + eps()) )
+    r2 = 1 - SS_res/(SS_tot + eps())
     return -r2
 end
 
@@ -244,7 +283,7 @@ function train!(denoiser::DenoiseNet, sim::AbstractArray{T,3}, ori::AbstractArra
     dev = denoiser.device
 
     # form a dataloader
-    @time train_data, test_simulated, test_original = dataloader(sim, ori; dev,
+    train_data, test_simulated, test_original = dataloader(sim, ori; dev,
         batch_size=args.batch_size, test_split=args.test_split, seed=args.seed);
 
     # build model
@@ -257,7 +296,6 @@ function train!(denoiser::DenoiseNet, sim::AbstractArray{T,3}, ori::AbstractArra
     best_loss = Inf
     last_improvement = 0
     losses = T[]
-    ss_tot_test = sum(abs2, test_original .- mean(test_original))
     for epoch_idx in 1:args.epochs
 
         # Train for a single epoch
@@ -272,7 +310,7 @@ function train!(denoiser::DenoiseNet, sim::AbstractArray{T,3}, ori::AbstractArra
         end
 
         # Calculate loss
-        loss = lossfn(model(test_original), test_simulated, ss_tot_test)
+        loss = lossfn(model(test_original), test_simulated)
         push!(losses, loss)
         @info(@sprintf("[%d]: Test loss: %.7f. Elapsed: %.3fs", epoch_idx, loss, elapsed))
 
