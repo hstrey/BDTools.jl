@@ -252,14 +252,18 @@ function maskindex(mask::BitMatrix)
     return res
 end
 
+# TODO: Normalize is an option to normalize the inner cylinder
+# to equal means - this is sometimes necessary if the shimming results in fringe
+# patters along z.
+
 """
     groundtruth(ph::StaticPhantom, data::AbstractArray, angles::Vector;
-                startmotion=1, threshold=Inf, verbose=false)
+                startmotion=1, threshold=Inf, verbose=false, normalize=false)
 
 Construct a prediction of a phantom motion data given a rotation information,
 and return a tensor of original and predicted values for the masked volume of
 the phantom `ph`, slice indices, and mask index map for translation to the original
-phantom coordinate space.
+phantom coordinate space. 
 """
 function groundtruth(ph::StaticPhantom, data::AbstractArray, angles::Vector;
     startmotion=1, threshold=Inf, verbose=false, flipangles=false)

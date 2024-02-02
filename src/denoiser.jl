@@ -7,9 +7,10 @@ using Statistics
 using Random, StableRNGs
 using NIfTI
 using Statistics
+using Polynomials
 using ..BDTools: BDTools
 
-export DenoiseNet, TrainParameters, train!, load_ground_truth, load_phantom, denoise
+export DenoiseNet, TrainParameters, train!, load_ground_truth, load_phantom, denoise, detrend
 
 """
     standardize(data::AbstractArray; dims=1)
@@ -20,6 +21,16 @@ function standardize(data::AbstractArray; dims=1)
     μ = mean(data, dims=dims)
     σ = std(data, dims=dims, mean=μ)
     (data.-μ) ./ σ, μ, σ
+end
+
+"""
+    detrend(data::AbstractArray)
+
+Return detrended `data`.
+"""
+function detrend(data::AbstractArray; dims=1)
+    l = length(data)
+    data .- Polynomials.fit(1:l,data,1).(1:l)
 end
 
 """
