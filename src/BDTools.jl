@@ -163,7 +163,7 @@ slice motion data `sliceinfo`. The parameter `staticslices` allows to select
 a number slices are used for construction of a model.
 """
 function staticphantom(ph::Array{Float64,4}, sliceinfo::Matrix{Int};
-    staticslices=1:200, interpolationtype=BSpline(Quadratic()))
+    staticslices=1:200, interpolationtype=BSpline(Quadratic(Line(OnGrid()))))
     sno = size(sliceinfo, 1)
     @assert size(ph, 3) == sno "Incompatible data dimensions"
 
