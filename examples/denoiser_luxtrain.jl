@@ -55,8 +55,16 @@ end
 gt = deserialize("gt_cleanTE3_new.h5", GroundTruthCleaned)
 ori64 =normalize(reshape(gt.data[:,:,1], (size(gt.data[:,:,1])[1],1,size(gt.data[:,:,1])[2])))
 sim64 = normalize(reshape(gt.data[:,:,2], (size(gt.data[:,:,2])[1],1,size(gt.data[:,:,2])[2])))
-ori = normalize(Float32.(ori64)[1:370,:,:])
-sim = normalize(Float32.(sim64)[1:370,:,:])
+
+gt2 = deserialize("gt_cleanTE3_new2.h5", GroundTruthCleaned)
+ori64_2 =normalize(reshape(gt2.data[:,:,1], (size(gt2.data[:,:,1])[1],1,size(gt2.data[:,:,1])[2])))
+sim64_2 = normalize(reshape(gt2.data[:,:,2], (size(gt2.data[:,:,2])[1],1,size(gt2.data[:,:,2])[2])))
+
+ori64t = cat(ori64,ori64_2,dims=3)
+sim64t = cat(sim64,sim64_2,dims=3)
+
+ori = normalize(Float32.(ori64t)[1:370,:,:])
+sim = normalize(Float32.(sim64t)[1:370,:,:])
 
 (i_train, o_train), (i_test, o_test) = splitobs((ori, sim); at=0.8)
 stand_i_train = standardize(i_train)
@@ -73,24 +81,15 @@ model = Chain(
         Conv((1,), 18=>1, pad=SamePad())
 )
 
-model = Chain(Conv((9,), 1=>8, sigmoid, pad=SamePad()),
+model = Chain(Conv((9,), 1=>10, sigmoid, pad=SamePad()),BatchNorm(10, sigmoid),
                 MaxPool((2,)),
-                Conv((9,),8=>16, sigmoid, pad=SamePad()),
+                Conv((9,),10=>20, sigmoid, pad=SamePad()),BatchNorm(20, sigmoid),
                 MaxPool((2,)),
-                Conv((9,),16=>32, sigmoid, pad=SamePad()),
-                MaxPool((2,0)),
-                ConvTranspose((9,), 32=>16, sigmoid, stride=2, pad=pad=(4, 4))
-)
-
-model = Chain(Conv((9,), 1=>16, sigmoid, pad=SamePad()),BatchNorm(16, sigmoid),
+                Conv((9,),20=>40, sigmoid, pad=SamePad()),BatchNorm(40, sigmoid),
                 MaxPool((2,)),
-                Conv((9,),16=>32, sigmoid, pad=SamePad()),BatchNorm(32, sigmoid),
-                MaxPool((2,)),
-                Conv((9,),32=>64, sigmoid, pad=SamePad()),BatchNorm(64, sigmoid),
-                MaxPool((2,)),
-                ConvTranspose((9,), 64=>32, sigmoid, stride=2, pad=SamePad()),BatchNorm(32, sigmoid),
-                ConvTranspose((9,), 32=>16, sigmoid, stride=2, pad=3),BatchNorm(16, sigmoid), Dropout(0.2),
-                ConvTranspose((9,), 16=>1, sigmoid, stride=2, pad=SamePad())
+                ConvTranspose((9,), 40=>20, sigmoid, stride=2, pad=SamePad()),BatchNorm(20, sigmoid),
+                ConvTranspose((9,), 20=>10, sigmoid, stride=2, pad=3),BatchNorm(10, sigmoid), Dropout(0.2),
+                ConvTranspose((9,), 10=>1, sigmoid, stride=2, pad=SamePad())
                 )
 
 # variational autoencoder 
@@ -142,7 +141,7 @@ end
 
 ps, st = Lux.setup(rng, model)
 
-opt = AdamW(; eta=1e-3, lambda=1e-6)
+opt = AdamW(; eta=1e-3, lambda=1e-5)
 
 train_state = Training.TrainState(model, ps, st, opt)
 
@@ -157,7 +156,7 @@ for epoch in 1:epochs
 
     start_time = time()
     for (i, X) in enumerate(train_dataloader)
-        (_, loss, _, train_state) = Training.single_train_step!(
+        (_, loss, _, train_state) = Training.single_train_step(
             AutoZygote(), loss_function, X, train_state
         )
 
