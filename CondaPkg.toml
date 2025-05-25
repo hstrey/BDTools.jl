@@ -1,3 +1,2 @@
 [deps]
-simpleitk = "<2.4"
-
+simpleitk = ""
