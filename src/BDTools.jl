@@ -1,13 +1,5 @@
 module BDTools
 
-using PythonCall
-
-const sitk = PythonCall.pynew()
-function __init__()
-    PythonCall.pycopy!(sitk, pyimport("SimpleITK"))
-end
-export sitk
-
 using Optim: Optim
 using Interpolations
 using Interpolations: scale
