@@ -16,9 +16,9 @@ function bfield_correction(image_path, mask_path; spline_order=3, num_control_po
         throw("current operating system unsupported")
     end
 
-    N4Bias_path = joinpath("ANTs",sys_path,"N4BiasFieldCorrection")
+    N4Bias_path = joinpath(@__DIR__,"..","ANTs",sys_path,"N4BiasFieldCorrection")
     ANTscommand = `$N4Bias_path -s 1 -d 3 -b \[1x1x1, 3\] -i $image_path - x $mask_path -o \[ $corrected_image_path , $bias_field_path \]`
-
+    run(ANTscommand)
     return (
         niread(image_path),
         niread(mask_path),
