@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Command-line tool for cleaning NIFTI files using a trained neural network model.
+NIFTI Clean Enhanced - Neural network model for cleaning NIFTI imaging data
+Usage: python nifti_clean_enhanced.py -m model.pt -i input.nii -o output.nii
 """
 
 import argparse
@@ -68,187 +69,314 @@ class Net(nn.Module):
         return output
 
 
-def apply_bm_ts(img, bm_path='/shared/home/zeming/utils/MNI152_T1_2mm_brain_mask.nii.gz'):
-    bm_mask_raw = nib.load(bm_path)
-
-    BM_THR = 0
-
-    # Binarize
-    bm_mask = image.resample_to_img(bm_mask_raw, img, interpolation='nearest').get_fdata()
-    bm_mask = bm_mask > BM_THR
-    affine = img.affine
-    header = img.header
-    # apply the gm mask to img
-    img = img.get_fdata()
-    img_masked = img[bm_mask, :]
-    img = np.zeros_like(img)  # Same shape as the original 4D image
-    # Place the masked data back into the 4D array at the corresponding voxel locations
-    img[bm_mask, :] = img_masked
-
-    img = nib.Nifti1Image(img, affine=affine, header=header)
-    return img
-
-
-def process_nifti(model_file, nifti_path, cleaned_nifti_path, batch_size=12, brain_mask_path=None):
+def apply_brain_mask(img, mask_path='/shared/home/zeming/utils/MNI152_T1_2mm_brain_mask.nii.gz', threshold=0):
     """
-    Process a NIFTI file using the trained model.
+    Apply brain mask to the input image.
     
     Args:
-        model_file: Path to the trained model file
-        nifti_path: Path to the input NIFTI file
-        cleaned_nifti_path: Path to save the cleaned NIFTI file
-        batch_size: Batch size for processing
-        brain_mask_path: Optional path to brain mask file
+        img: Input NIfTI image
+        mask_path: Path to brain mask file
+        threshold: Threshold value for mask binarization
+    
+    Returns:
+        Masked NIfTI image
     """
-    # Find correct device
+    mask_raw = nib.load(mask_path)
+    
+    # Resample mask to match input image and binarize
+    mask = image.resample_to_img(mask_raw, img, interpolation='nearest').get_fdata()
+    mask = mask > threshold
+    
+    # Apply mask
+    affine = img.affine
+    header = img.header
+    data = img.get_fdata()
+    masked_data = data[mask, :]
+    
+    # Reconstruct masked image
+    result = np.zeros_like(data)
+    result[mask, :] = masked_data
+    
+    return nib.Nifti1Image(result, affine=affine, header=header)
+
+
+def process_nifti(model_path, input_path, output_path, batch_size=12, mask_path=None, verbose=False):
+    """
+    Process a NIFTI file using the trained neural network model.
+    
+    Args:
+        model_path: Path to the trained model file (.pt)
+        input_path: Path to the input NIFTI file
+        output_path: Path to save the cleaned NIFTI file
+        batch_size: Batch size for processing
+        mask_path: Optional path to brain mask file
+        verbose: Enable verbose output
+    
+    Returns:
+        None
+    """
+    # Detect and set device
     if torch.backends.mps.is_available():
-        print("Using MPS device")
         device = torch.device("mps")
+        device_name = "MPS (Apple Silicon)"
     elif torch.cuda.is_available():
-        print("Using CUDA device")
         device = torch.device("cuda")
+        device_name = "CUDA (GPU)"
     else:
-        print("Using CPU device")
         device = torch.device("cpu")
+        device_name = "CPU"
+    
+    if verbose:
+        print(f"Device: {device_name}")
+        print(f"PyTorch version: {torch.__version__}")
     
     # Load model
-    print(f"Loading model from {model_file}")
-    model_saved = Net()
-    model_saved.load_state_dict(torch.load(model_file, map_location=device))
-    model_saved.eval()
-    model_saved.to(device)
+    if verbose:
+        print(f"\nLoading model from: {model_path}")
     
-    # Load data
-    print(f"Loading NIFTI file from {nifti_path}")
-    img = image.load_img(nifti_path)
+    model = Net()
+    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.eval()
+    model.to(device)
     
-    # Apply brain mask
-    if brain_mask_path:
-        print(f"Applying brain mask from {brain_mask_path}")
-        img = apply_bm_ts(img, brain_mask_path)
-    else:
-        print("Applying default brain mask")
-        img = apply_bm_ts(img)
+    # Load NIFTI data
+    if verbose:
+        print(f"Loading NIFTI file: {input_path}")
     
-    # Process data
-    print("Processing data...")
+    img = image.load_img(input_path)
+    
+    # Apply brain mask if specified
+    if mask_path:
+        if verbose:
+            print(f"Applying brain mask: {mask_path}")
+        img = apply_brain_mask(img, mask_path)
+    elif mask_path is None:
+        # Use default mask path if it exists
+        default_mask = '/shared/home/zeming/utils/MNI152_T1_2mm_brain_mask.nii.gz'
+        try:
+            if verbose:
+                print(f"Applying default brain mask: {default_mask}")
+            img = apply_brain_mask(img, default_mask)
+        except FileNotFoundError:
+            if verbose:
+                print("No brain mask applied (default mask not found)")
+    
+    # Extract and prepare data
     data = img.get_fdata()
     X, Y, Z, T = data.shape
     
-    # Calculate mean and standard deviation for each voxel across the time dimension
+    if verbose:
+        print(f"\nData dimensions: {X} x {Y} x {Z} x {T}")
+        print(f"Total voxels: {X * Y * Z}")
+        print(f"Time points: {T}")
+    
+    # Calculate statistics for normalization
     voxel_means = np.mean(data, axis=3, keepdims=True)
     voxel_stds = np.std(data, axis=3, keepdims=True)
     
-    data_dm = data - voxel_means  # De-mean the data
-    data_dm = data_dm.reshape(-1, T)  # Reshape to 2D for processing
+    # Normalize data
+    data_normalized = (data - voxel_means) / (voxel_stds + 1e-8)
+    data_demeaned = data - voxel_means
     
-    # Normalize the data for each voxel
-    data = (data - voxel_means) / (voxel_stds + 1e-8)  # Add a small value to avoid division by zero
-    
-    # Reshape the data
-    data_2d = data.reshape(-1, T)
+    # Reshape for processing
+    data_2d = data_normalized.reshape(-1, T)
+    data_dm_2d = data_demeaned.reshape(-1, T)
     means_2d = voxel_means.reshape(-1, 1)
     stds_2d = voxel_stds.reshape(-1, 1)
     
-    # Create mask for valid data
+    # Create mask for non-zero voxels
     mask = ~np.all(data_2d == 0, axis=1)
+    valid_voxels = np.sum(mask)
     
+    if verbose:
+        print(f"Valid voxels: {valid_voxels} ({100 * valid_voxels / len(mask):.1f}%)")
+    
+    # Extract valid data
     valid_data = data_2d[mask, :]
-    # compute the mean and std of the valid data
-    valid_data_demean = data_dm[mask, :]
+    valid_data_dm = data_dm_2d[mask, :]
     valid_means = means_2d[mask]
     valid_stds = stds_2d[mask]
     
-    data_input = torch.from_numpy(valid_data).float().to(device)
-    data_input = data_input.unsqueeze(1)  # Add channel dimension
+    # Prepare input tensor
+    data_tensor = torch.from_numpy(valid_data).float().to(device)
+    data_tensor = data_tensor.unsqueeze(1)  # Add channel dimension
     
     # Process in batches
-    print(f"Processing {data_input.size(0)} voxels in batches of {batch_size}")
+    if verbose:
+        print(f"\nProcessing {valid_voxels} voxels in batches of {batch_size}...")
+    
     outputs = []
+    num_batches = (data_tensor.size(0) + batch_size - 1) // batch_size
     
     with torch.no_grad():
-        for i in range(0, data_input.size(0), batch_size):
-            batch = data_input[i:i+batch_size]
-            out = model_saved(batch)
-            outputs.append(out.cpu())
+        for i in range(0, data_tensor.size(0), batch_size):
+            if verbose and i % (batch_size * 100) == 0:
+                progress = min(100, 100 * i // data_tensor.size(0))
+                print(f"Progress: {progress}%", end='\r')
+            
+            batch = data_tensor[i:i + batch_size]
+            output = model(batch)
+            outputs.append(output.cpu())
     
+    if verbose:
+        print("Progress: 100%")
+    
+    # Concatenate outputs
     outputs = torch.cat(outputs, dim=0).squeeze(1).numpy()
     
-    # Demean the output along the 2 axis
+    # Post-process outputs
     outputs_centered = outputs - np.mean(outputs, axis=1, keepdims=True)
     
-    # Scale outputs
-    bs = np.sum(valid_data_demean * outputs_centered, axis=1) / np.sum(outputs_centered ** 2, axis=1)
+    # Scale outputs to match original data
+    scaling_factors = np.sum(valid_data_dm * outputs_centered, axis=1) / np.sum(outputs_centered ** 2, axis=1)
+    outputs_scaled = outputs_centered * scaling_factors[:, np.newaxis] + valid_means
     
-    # Reshape `bs` to match the dimensions of `outputs` for broadcasting
-    outputs_scaled = outputs_centered * bs[:, np.newaxis] + valid_means
+    # Reconstruct full data
+    result = np.zeros_like(data_2d)
+    result[mask] = outputs_scaled
+    result_4d = result.reshape(X, Y, Z, T)
     
-    # Reconstruct the full data
-    result_denorm = np.zeros_like(data_2d)
-    result_denorm[mask] = outputs_scaled
+    # Save cleaned NIFTI
+    cleaned_img = nib.Nifti1Image(result_4d, affine=img.affine, header=img.header)
     
-    result_denorm_4d = result_denorm.reshape(X, Y, Z, T)
+    if verbose:
+        print(f"\nSaving cleaned NIFTI to: {output_path}")
     
-    # Save the result
-    new_img_denorm = nib.Nifti1Image(result_denorm_4d, affine=img.affine, header=img.header)
-    print(f"Saving cleaned NIFTI file to {cleaned_nifti_path}")
-    new_img_denorm.to_filename(cleaned_nifti_path)
-    print("Processing complete!")
+    cleaned_img.to_filename(output_path)
+    
+    if verbose:
+        print("Processing complete!")
 
 
 def main():
+    """Main function to handle command line arguments and run processing."""
+    
+    # Create argument parser with detailed help
     parser = argparse.ArgumentParser(
-        description="Clean NIFTI files using a trained neural network model",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description='NIFTI Clean Enhanced - Neural network model for cleaning NIFTI imaging data',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  Basic usage:
+    %(prog)s -m model.pt -i input.nii -o output.nii
+  
+  With custom brain mask:
+    %(prog)s -m model.pt -i input.nii -o output.nii --mask brain_mask.nii
+  
+  With larger batch size for faster processing:
+    %(prog)s -m model.pt -i input.nii -o output.nii --batch-size 32
+  
+  Verbose mode for detailed output:
+    %(prog)s -m model.pt -i input.nii -o output.nii --verbose
+
+Notes:
+  - The model file should be a PyTorch state dict saved with torch.save()
+  - Input NIFTI files should be 4D (x, y, z, time)
+  - Default brain mask is applied if available, use --no-mask to skip
+  - Batch size affects memory usage and processing speed
+        """
     )
     
+    # Required arguments
     parser.add_argument(
-        "-m", "--model-file",
+        '-m', '--model',
         type=str,
         required=True,
-        help="Path to the trained model file (.pt)"
+        dest='model_path',
+        help='Path to the trained PyTorch model file (.pt)'
     )
     
     parser.add_argument(
-        "-i", "--nifti-path",
+        '-i', '--input',
         type=str,
         required=True,
-        help="Path to the input NIFTI file"
+        dest='input_path',
+        help='Path to the input NIFTI file to be cleaned'
     )
     
     parser.add_argument(
-        "-o", "--cleaned-nifti-path",
+        '-o', '--output',
         type=str,
         required=True,
-        help="Path to save the cleaned NIFTI file"
+        dest='output_path',
+        help='Path where the cleaned NIFTI file will be saved'
     )
     
+    # Optional arguments
     parser.add_argument(
-        "-b", "--batch-size",
+        '-b', '--batch-size',
         type=int,
         default=12,
-        help="Batch size for processing"
+        dest='batch_size',
+        help='Batch size for processing (default: 12)'
     )
     
     parser.add_argument(
-        "-bm", "--brain-mask",
+        '--mask',
         type=str,
         default=None,
-        help="Path to brain mask file (optional, uses default if not provided)"
+        dest='mask_path',
+        help='Path to custom brain mask file (optional)'
     )
     
+    parser.add_argument(
+        '--no-mask',
+        action='store_const',
+        const=False,
+        dest='mask_path',
+        help='Skip brain mask application entirely'
+    )
+    
+    parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help='Enable verbose output with processing details'
+    )
+    
+    parser.add_argument(
+        '--version',
+        action='version',
+        version='%(prog)s 1.0.0'
+    )
+    
+    # Parse arguments
     args = parser.parse_args()
     
+    # Validate input file exists
+    import os
+    if not os.path.exists(args.input_path):
+        print(f"Error: Input file not found: {args.input_path}", file=sys.stderr)
+        sys.exit(1)
+    
+    if not os.path.exists(args.model_path):
+        print(f"Error: Model file not found: {args.model_path}", file=sys.stderr)
+        sys.exit(1)
+    
+    # Check output directory exists
+    output_dir = os.path.dirname(args.output_path)
+    if output_dir and not os.path.exists(output_dir):
+        print(f"Error: Output directory does not exist: {output_dir}", file=sys.stderr)
+        sys.exit(1)
+    
     try:
+        # Run processing
         process_nifti(
-            args.model_file,
-            args.nifti_path,
-            args.cleaned_nifti_path,
-            args.batch_size,
-            args.brain_mask
+            model_path=args.model_path,
+            input_path=args.input_path,
+            output_path=args.output_path,
+            batch_size=args.batch_size,
+            mask_path=args.mask_path,
+            verbose=args.verbose
         )
+        
+    except KeyboardInterrupt:
+        print("\nProcessing interrupted by user", file=sys.stderr)
+        sys.exit(130)
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+        print(f"Error during processing: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
         sys.exit(1)
 
 
