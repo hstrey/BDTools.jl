@@ -16,7 +16,7 @@ from torch.optim.lr_scheduler import StepLR
 import numpy as np
 import copy
 import random
-
+from sklearn.model_selection import train_test_split
 
 class Net(nn.Module):
     def __init__(self):
@@ -505,8 +505,21 @@ Notes:
         else:
             print(f"Dataset size: {len(dataset)}")
             print(f"Train size: {train_size}, Test size: {test_size}")
-        
-        train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+
+        # stratify test and training set by correlation to make sure that both sets have simular correlation distributions
+        r = torch.stack([
+                torch.corrcoef(torch.stack([dataset.tensors[0][i,0,:], dataset.tensors[1][i,0,:]]))[1,0]
+                for i in range(dataset.tensors[0].shape[0])
+                ]).numpy()
+        bins = np.quantile(r, np.linspace(0, 1, 11))  # 10 quantile bins
+        r_binned = np.digitize(r, bins[1:-1])
+        idx = np.arange(len(r))
+        train_idx, test_idx = train_test_split(idx, test_size=(1.0-args.train_split),
+                                       stratify=r_binned)
+
+        train_dataset = torch.utils.data.Subset(dataset, train_idx)
+        test_dataset = torch.utils.data.Subset(dataset, test_idx)
+        #train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
         train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
         test_dataloader = DataLoader(test_dataset, batch_size=test_size)
         
