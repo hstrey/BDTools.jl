@@ -508,8 +508,8 @@ Notes:
 
         # stratify test and training set by correlation to make sure that both sets have simular correlation distributions
         r = torch.stack([
-                torch.corrcoef(torch.stack([ori32[i,0,:], sim32[i,0,:]]))[1,0]
-                for i in range(ori32.shape[0])
+                torch.corrcoef(torch.stack([dataset.tensors[0][i,0,:], dataset.tensors[1][i,0,:]]))[1,0]
+                for i in range(dataset.tensors[0].shape[0])
                 ]).numpy()
         bins = np.quantile(r, np.linspace(0, 1, 11))  # 10 quantile bins
         r_binned = np.digitize(r, bins[1:-1])
